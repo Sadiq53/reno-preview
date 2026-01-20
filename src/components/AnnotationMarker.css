@@ -1,0 +1,89 @@
+/* The container is handled by PreviewWindow for positioning, 
+   but the inner marker styling is here */
+
+.annotation-marker-container {
+    position: relative; 
+    /* The parent wrapper in PreviewWindow handles absolute positioning */
+    cursor: pointer;
+}
+
+.mini-dot {
+    width: 14px;
+    height: 14px;
+    background-color: #f97316; /* Orange-500 */
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.annotation-marker-container:hover .mini-dot {
+    transform: scale(1.2);
+    background-color: #ea580c; /* Orange-600 */
+}
+
+.annotation-marker-container.active .mini-dot {
+    background-color: #ec4899; /* Pink-500 */
+    transform: scale(1.3);
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.3);
+}
+
+.marker-popover {
+    position: absolute;
+    bottom: 24px; /* Above the dot */
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    width: 220px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+    border: 1px solid #e5e7eb;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Arrow */
+.marker-popover::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, 5px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.popover-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.popover-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.popover-username {
+    font-size: 12px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.popover-body {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.4;
+}

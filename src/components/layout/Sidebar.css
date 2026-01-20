@@ -1,0 +1,103 @@
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: #d4d4d4;
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.sidebar-comment-card {
+  background-color: #262626;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+}
+
+.sidebar-comment-card:hover {
+  border-color: #555;
+  transform: translateY(-1px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.avatar-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #444;
+    color: white;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: #333;
+    border-radius: 4px;
+    color: #a3a3a3;
+}
+
+.card-content {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #d4d4d4;
+    margin-bottom: 8px;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+}
+
+.reply-link {
+    font-size: 11px;
+    color: #888;
+    cursor: pointer;
+}
+.reply-link:hover {
+    color: #aaa;
+}
