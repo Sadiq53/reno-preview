@@ -8,15 +8,22 @@
   background-color: #ffffff;
 }
 
+html {
+  overflow: hidden;
+  /* Ensure global scroll is disabled */
+}
 body {
   margin: 0;
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  overflow: hidden; /* Prevent scroll caused by absolute tooltips */
+  overflow: hidden;
+    /* Double enforce */
 }
 
 #root {
   width: 100%;
   height: 100vh;
+  overflow: hidden;
+    /* Ensure root container also clips if needed */
 }
