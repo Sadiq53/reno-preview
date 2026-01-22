@@ -1,7 +1,7 @@
 import React from 'react';
 import './Layout.css';
 
-const Layout = ({ topBar, sidebar, children }) => {
+const Layout = ({ topBar, sidebar, children, sidebarVisible = true }) => {
   return (
     <div className="layout-container">
       <div className="layout-header">
@@ -11,7 +11,7 @@ const Layout = ({ topBar, sidebar, children }) => {
         <div className="layout-main">
           {children}
         </div>
-        <div className="layout-sidebar">
+        <div className={`layout-sidebar ${sidebarVisible ? 'open' : 'closed'}`}>
           {sidebar}
         </div>
       </div>

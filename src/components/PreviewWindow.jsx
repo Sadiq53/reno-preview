@@ -1,57 +1,68 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AnnotationMarker from './AnnotationMarker';
 import './PreviewWindow.css';
 
-const PreviewWindow = ({ url, annotations = [], selectedId, viewportSize }) => {
+const PreviewWindow = ({ 
+  url, 
+  annotations = [], 
+  selectedId, 
+  viewportSize, 
+  zoomLevel = 100, 
+  onViewportResize,
+  isFullscreen = false,
+  position = { x: 0, y: 0 },
+  onPositionChange
+}) => {
   if (!url) return <div className="preview-placeholder">Enter a URL to preview</div>;
 
   const iframeRef = useRef(null);
+  const containerRef = useRef(null);
+  const frameRef = useRef(null);
   const [scrollY, setScrollY] = useState(0);
+  
+  // Resize state
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState(null);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  
+  // Drag/move state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, posX: 0, posY: 0 });
 
-  // Determine active viewport size
   const viewportWidth = viewportSize?.width || 375;
   const viewportHeight = viewportSize?.height || 667;
+  const scale = zoomLevel / 100;
 
-  // Handle iframe load and scroll listener
+  // Handle iframe scroll
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
     const handleLoad = () => {
         try {
-            // Attempt to access contentWindow (requires same-origin/proxy)
             if (iframe.contentWindow) {
                 const win = iframe.contentWindow;
-                
-                // Initialize scroll
                 setScrollY(win.scrollY);
                 
-                // Add listener
-                const onScroll = () => {
-                    setScrollY(win.scrollY);
-                };
+                const onScroll = () => setScrollY(win.scrollY);
                 win.addEventListener('scroll', onScroll);
-                
-                // Cleanup listener on unmount/reload
                 return () => win.removeEventListener('scroll', onScroll);
             }
         } catch (e) {
-            console.warn("Cross-origin access blocked or iframe not ready", e);
+            console.warn("Cross-origin access blocked", e);
         }
     };
 
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
-  }, [url]); // Re-run if URL changes (new iframe content)
+  }, [url]);
 
   // Scroll to selected comment
   useEffect(() => {
-    if (selectedId && iframeRef.current && iframeRef.current.contentWindow) {
+    if (selectedId && iframeRef.current?.contentWindow) {
       const selected = annotations.find(a => a.id === selectedId);
-      if (selected && selected.position) {
+      if (selected?.position) {
          try {
-             // Scroll center the comment
-             // Target Y = absolute Y - half viewport
              const targetY = selected.position.y - (viewportHeight / 3); 
              iframeRef.current.contentWindow.scrollTo({
                  top: targetY,
@@ -64,28 +75,127 @@ const PreviewWindow = ({ url, annotations = [], selectedId, viewportSize }) => {
     }
   }, [selectedId, annotations, viewportHeight]);
 
+  // --- RESIZE HANDLERS ---
+  const handleResizeMouseDown = useCallback((e, handle) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeHandle(handle);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: viewportWidth,
+      height: viewportHeight
+    });
+  }, [viewportWidth, viewportHeight]);
+
+  const handleResizeMouseMove = useCallback((e) => {
+    if (!isResizing || !resizeHandle) return;
+
+    const deltaX = e.clientX - resizeStart.x;
+    const deltaY = e.clientY - resizeStart.y;
+
+    let newWidth = resizeStart.width;
+    let newHeight = resizeStart.height;
+
+    if (resizeHandle.includes('e')) newWidth = Math.max(320, resizeStart.width + deltaX / scale);
+    if (resizeHandle.includes('w')) newWidth = Math.max(320, resizeStart.width - deltaX / scale);
+    if (resizeHandle.includes('s')) newHeight = Math.max(400, resizeStart.height + deltaY / scale);
+    if (resizeHandle.includes('n')) newHeight = Math.max(400, resizeStart.height - deltaY / scale);
+
+    if (onViewportResize) {
+      onViewportResize({
+        width: Math.round(newWidth),
+        height: Math.round(newHeight)
+      });
+    }
+  }, [isResizing, resizeHandle, resizeStart, scale, onViewportResize]);
+
+  const handleResizeMouseUp = useCallback(() => {
+    setIsResizing(false);
+    setResizeHandle(null);
+  }, []);
+
+  // --- DRAG/MOVE HANDLERS ---
+  const handleDragMouseDown = useCallback((e) => {
+    // Only allow dragging from the bezel (not the screen itself)
+    if (e.target.classList.contains('preview-iframe') || 
+        e.target.classList.contains('device-screen') ||
+        e.target.classList.contains('annotation-layer')) {
+      return;
+    }
+    
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      posX: position.x,
+      posY: position.y
+    });
+  }, [position]);
+
+  const handleDragMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    
+    if (onPositionChange) {
+      onPositionChange({
+        x: dragStart.posX + deltaX,
+        y: dragStart.posY + deltaY
+      });
+    }
+  }, [isDragging, dragStart, onPositionChange]);
+
+  const handleDragMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Global mouse listeners
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMouseMove);
+      window.addEventListener('mouseup', handleResizeMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMouseMove);
+        window.removeEventListener('mouseup', handleResizeMouseUp);
+      };
+    }
+  }, [isResizing, handleResizeMouseMove, handleResizeMouseUp]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMouseMove);
+      window.addEventListener('mouseup', handleDragMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleDragMouseMove);
+        window.removeEventListener('mouseup', handleDragMouseUp);
+      };
+    }
+  }, [isDragging, handleDragMouseMove, handleDragMouseUp]);
+
   return (
-    <div className="preview-container">
-      <div className="device-frame" style={{ width: viewportWidth + 20 }}>
-         <div className="device-chrome">
-            <div className="device-url-bar">{url}</div>
-         </div>
-         
+    <div className={`preview-container ${isFullscreen ? 'fullscreen' : ''}`} ref={containerRef}>
+      <div 
+        ref={frameRef}
+        className={`device-frame ${isDragging ? 'dragging' : ''}`}
+        style={{ 
+          width: viewportWidth + 4, // Very thin bezel (2px each side)
+          transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+          transformOrigin: 'center center',
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleDragMouseDown}
+      >
          <div className="device-screen" style={{ width: viewportWidth, height: viewportHeight }}>
-            {/* The Annotation Layer */}
+            {/* Annotation Layer */}
             <div className="annotation-layer">
                {annotations.map((ann) => {
                  const pos = ann.position || { x: 0, y: 0 };
-                 
-                   // Render relative to current scroll
-                 // If scrolled down 100px, and item is at 500px absolute, it should be rendered at 400px.
                  const topPos = pos.y - scrollY;
-                 
                  const isSelected = selectedId === ann.id;
-                 
-                 // Handle Horizontal positioning
-                 // Reverting to percentage based on re-analysis of data (e.g. x=88 is scrollbar).
-                 // User 'misalignment' likely due to missing transform centering.
                  const leftPos = `${pos.x}%`;
 
                  return (
@@ -97,15 +207,6 @@ const PreviewWindow = ({ url, annotations = [], selectedId, viewportSize }) => {
                             left: leftPos,
                             top: topPos,
                             zIndex: isSelected ? 200 : 10
-                        }}
-                        onClick={(e) => {
-                            e.stopPropagation(); // Prevent ensuring it doesn't bubbling oddly?
-                            // We need a way to set selectedId from here? 
-                            // But PreviewWindow props don't include onSelect.
-                            // We should probably rely on the Hover state for "opening" content as per request "open on hover".
-                            // But if we want it to be "selected" effectively:
-                            // The user said "open comment on hover or tap".
-                            // My AnnotationMarker handles hover internally.
                         }}
                    >
                        <AnnotationMarker 
@@ -126,17 +227,20 @@ const PreviewWindow = ({ url, annotations = [], selectedId, viewportSize }) => {
               className="preview-iframe"
               width="100%"
               height="100%"
-              // Allow same-origin access features? 
-              // Vite proxy makes it same-origin effectively for the main document context *if* content-type is correct.
             />
          </div>
-         <div className="device-footer">
-            Mobile Simulator ({viewportWidth}x{viewportHeight})
+
+         {/* Resize Handles - very subtle */}
+         <div className="resize-handle resize-handle-e" onMouseDown={(e) => handleResizeMouseDown(e, 'e')} />
+         <div className="resize-handle resize-handle-w" onMouseDown={(e) => handleResizeMouseDown(e, 'w')} />
+         <div className="resize-handle resize-handle-s" onMouseDown={(e) => handleResizeMouseDown(e, 's')} />
+         <div className="resize-handle resize-handle-se" onMouseDown={(e) => handleResizeMouseDown(e, 'se')} />
+         <div className="resize-handle resize-handle-sw" onMouseDown={(e) => handleResizeMouseDown(e, 'sw')} />
+         
+         {/* Size indicator */}
+         <div className="size-indicator">
+            {viewportWidth} × {viewportHeight}
          </div>
-      </div>
-      
-      <div className="info-panel">
-         <p><strong>Note:</strong> Markers scroll with the page content.</p>
       </div>
     </div>
   );

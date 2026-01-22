@@ -1,6 +1,42 @@
-.app-container {
+/* App-level styles */
+
+/* Fullscreen container */
+.fullscreen-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0a;
+  z-index: 9999;
   display: flex;
-  width: 100%;
-  height: 100vh;
+  align-items: center;
+    justify-content: center;
   overflow: hidden;
+}
+
+/* Exit fullscreen button */
+.exit-fullscreen-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(26, 26, 26, 0.9);
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #888;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.exit-fullscreen-btn:hover {
+  background: #333;
+  color: #fff;
+  border-color: #555;
 }

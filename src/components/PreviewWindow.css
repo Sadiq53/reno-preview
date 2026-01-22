@@ -1,53 +1,64 @@
 .preview-container {
-  flex: 1; /* Take remaining space */
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #0f0f0f; /* Match Main Layout */
-  padding: 40px;
-  overflow: auto;
-  overflow-y: hidden;
+  background: #0a0a0a;
+    padding: 20px;
+    overflow: hidden;
   box-sizing: border-box;
+  position: relative;
 }
 
-.device-frame {
-  background: #1a1a1a;
-  border-radius: 40px; /* More modern rounded */
-  box-shadow: 0 0 0 10px #333, 0 20px 50px rgba(0,0,0,0.5); /* Bezel look */
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0; 
-  border: 1px solid #444;
+.preview-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  padding: 40px;
 }
 
-.device-chrome {
-  width: 100%;
-  margin-bottom: 15px;
+.preview-placeholder {
+  color: #666;
+  font-size: 16px;
   text-align: center;
 }
 
-.device-url-bar {
-  background: #262626;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 11px;
-  color: #888;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80%;
-  margin: 0 auto;
+/* Very thin bezel device frame */
+.device-frame {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 8px;
+    padding: 2px;
+    /* Very thin bezel */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
   border: 1px solid #333;
+    transition: box-shadow 0.2s ease;
+    cursor: grab;
+    user-select: none;
+}
+
+.device-frame:hover {
+  box-shadow: 0 0 0 1px rgba(225, 29, 72, 0.3);
+}
+
+.device-frame.dragging {
+  cursor: grabbing;
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.5);
 }
 
 .device-screen {
   position: relative;
   background: white;
-  border-radius: 4px; /* Slight radius */
-  /* overflow: hidden;  <-- REMOVED to allow tooltips to show outside */
+  border-radius: 4px;
+    overflow: hidden;
+    cursor: default;
 }
 
 .preview-iframe {
@@ -55,7 +66,9 @@
   width: 100%;
   height: 100%;
   background: white;
-  border-radius: 4px; /* Maintain rounded corners here */
+  display: block;
+    pointer-events: auto;
+    cursor: default;
 }
 
 .annotation-layer {
@@ -64,32 +77,141 @@
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; 
+  pointer-events: none;
   z-index: 10;
 }
 
-.device-footer {
-  margin-top: 15px;
+/* Size indicator - very subtle */
+.size-indicator {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 11px;
   color: #555;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  
+  /* Resize Handles - invisible until hover */
+  .resize-handle {
+    position: absolute;
+    background: transparent;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+  }
+  
+  .device-frame:hover .resize-handle {
+    opacity: 1;
+  }
+  
+  .resize-handle:hover {
+    background: rgba(225, 29, 72, 0.4);
 }
 
-.info-panel {
-    margin-top: 20px;
-    font-size: 12px;
-    color: #666;
+.resize-handle-e {
+  right: -6px;
+  top: 20%;
+  height: 60%;
+  width: 12px;
+  cursor: ew-resize;
+  border-radius: 4px;
+}
+
+.resize-handle-w {
+  left: -6px;
+  top: 20%;
+  height: 60%;
+  width: 12px;
+  cursor: ew-resize;
+  border-radius: 4px;
+}
+
+.resize-handle-s {
+  bottom: -6px;
+  left: 20%;
+  width: 60%;
+  height: 12px;
+  cursor: ns-resize;
+  border-radius: 4px;
+}
+
+.resize-handle-se {
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  border-radius: 50%;
+}
+
+.resize-handle-sw {
+  left: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  cursor: nesw-resize;
+  border-radius: 50%;
+}
+
+/* Resize handle indicators */
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  background: #666;
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.device-frame:hover .resize-handle::after {
+  opacity: 0.6;
+}
+
+.resize-handle:hover::after {
+  opacity: 1;
+  background: #e11d48;
+}
+
+.resize-handle-e::after,
+.resize-handle-w::after {
+  width: 3px;
+  height: 24px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.resize-handle-s::after {
+  width: 24px;
+  height: 3px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.resize-handle-se::after,
+.resize-handle-sw::after {
+  width: 6px;
+  height: 6px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
 }
 
 /* Marker Highlighting */
 .marker-wrapper.selected .marker-dot {
-    background: #ec4899; /* Pink/Highlight color */
+  background: #ec4899;
     box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.4);
     transform: translate(-50%, -50%) scale(1.2);
     z-index: 50;
 }
 
 .marker-wrapper {
-    transition: all 0.3s ease;
-    pointer-events: auto; /* Enable interaction */
-    transform: translate(-50%, -50%); /* Center marker on the coordinate */
+  transition: all 0.3s ease;
+  pointer-events: auto;
+    transform: translate(-50%, -50%);
 }
