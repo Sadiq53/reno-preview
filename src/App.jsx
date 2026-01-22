@@ -173,22 +173,20 @@ function App() {
   const activePageObj = uniquePages.find(p => p.path === activePagePath);
   
   // In development, use the Vite proxy to avoid CORS/X-Frame-Options issues
-  // In production, use the actual Webflow URL directly (iframe may still be blocked 
-  // by X-Frame-Options, but at least it won't cause infinite nesting)
+  // In production, use the Vercel API proxy (/api/proxy)
   const isDev = import.meta.env.DEV;
   
   let proxyUrl = '';
   if (activePageObj) {
+    // Get just the path from the fullUrl
+    const urlPath = activePageObj.path || '/';
+    
     if (isDev) {
-      // Development: use proxy
-      proxyUrl = activePageObj.fullUrl.replace('https://reno-v1.webflow.io', '/proxy-target');
-      // Ensure "/" path becomes "/proxy-target/" not "/proxy-target"
-      if (proxyUrl === '/proxy-target') {
-        proxyUrl = '/proxy-target/';
-      }
+      // Development: use Vite proxy
+      proxyUrl = `/proxy-target${urlPath}`;
     } else {
-      // Production: use direct URL to avoid /proxy-target routing back to app
-      proxyUrl = activePageObj.fullUrl;
+      // Production: use Vercel serverless API proxy
+      proxyUrl = `/api/proxy?path=${encodeURIComponent(urlPath)}`;
     }
   }
 
