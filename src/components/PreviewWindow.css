@@ -5,8 +5,8 @@
   align-items: center;
   justify-content: center;
   background: #0a0a0a;
-    padding: 20px;
-    overflow: hidden;
+  padding: 20px;
+  overflow: auto;
   box-sizing: border-box;
   position: relative;
 }
@@ -32,16 +32,18 @@
   position: relative;
   background: #1a1a1a;
   border-radius: 8px;
-    padding: 2px;
-    /* Very thin bezel */
+  padding: 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
   border: 1px solid #333;
-    transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
     cursor: grab;
     user-select: none;
+  /* Ensure GPU acceleration for smooth rendering */
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .device-frame:hover {
@@ -57,8 +59,10 @@
   position: relative;
   background: white;
   border-radius: 4px;
-    overflow: hidden;
+  overflow: hidden;
     cursor: default;
+  /* Ensure proper rendering isolation */
+    isolation: isolate;
 }
 
 .preview-iframe {
@@ -67,8 +71,12 @@
   height: 100%;
   background: white;
   display: block;
-    pointer-events: auto;
+  pointer-events: auto;
     cursor: default;
+  /* Remove the transform-style to avoid affecting nested animations */
+    transform: none;
+    /* Ensure no additional scrollbars are added by the iframe element itself */
+    overflow: hidden;
 }
 
 .annotation-layer {
@@ -90,7 +98,7 @@
   font-size: 11px;
   color: #555;
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-    white-space: nowrap;
+  white-space: nowrap;
     pointer-events: none;
   }
   
@@ -205,7 +213,7 @@
 /* Marker Highlighting */
 .marker-wrapper.selected .marker-dot {
   background: #ec4899;
-    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.4);
     transform: translate(-50%, -50%) scale(1.2);
     z-index: 50;
 }
@@ -213,5 +221,5 @@
 .marker-wrapper {
   transition: all 0.3s ease;
   pointer-events: auto;
-    transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
 }
