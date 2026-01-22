@@ -172,9 +172,25 @@ function App() {
 
   const activePageObj = uniquePages.find(p => p.path === activePagePath);
   
-  const proxyUrl = activePageObj 
-    ? activePageObj.fullUrl.replace('https://reno-v1.webflow.io', '/proxy-target')
-    : '';
+  // In development, use the Vite proxy to avoid CORS/X-Frame-Options issues
+  // In production, use the actual Webflow URL directly (iframe may still be blocked 
+  // by X-Frame-Options, but at least it won't cause infinite nesting)
+  const isDev = import.meta.env.DEV;
+  
+  let proxyUrl = '';
+  if (activePageObj) {
+    if (isDev) {
+      // Development: use proxy
+      proxyUrl = activePageObj.fullUrl.replace('https://reno-v1.webflow.io', '/proxy-target');
+      // Ensure "/" path becomes "/proxy-target/" not "/proxy-target"
+      if (proxyUrl === '/proxy-target') {
+        proxyUrl = '/proxy-target/';
+      }
+    } else {
+      // Production: use direct URL to avoid /proxy-target routing back to app
+      proxyUrl = activePageObj.fullUrl;
+    }
+  }
 
   // Fullscreen mode - render only viewport
   if (isFullscreen) {
