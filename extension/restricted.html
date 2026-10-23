@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restricted Area - Crewvia Vanguard Sentinel</title>
+  <link rel="stylesheet" href="restricted.css">
+</head>
+<body>
+  <div class="sentinel-box">
+    <div class="icon-wrap" id="iconWrap">
+      <svg id="shieldIcon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+
+    <h1 id="sentinelTitle">Security Sentinel: Restricted Area</h1>
+    <p class="desc" id="sentinelDesc">
+      File editing, plugin installations, and administrative user creations are locked by your agency owner under Crewvia Vanguard zero-trust runtime policy.
+    </p>
+
+    <div class="blocked-badge" id="blockedUrlDisplay">
+      Target: <code id="blockedUrl">/wp-admin/users.php</code>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="btnReturn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span id="btnReturnText">Return to Safe Dashboard</span>
+      </button>
+    </div>
+
+    <div class="sentinel-footer">
+      <span class="status-dot"></span>
+      <span id="footerText">Crewvia Vanguard Companion &bull; Zero-Plugin Guardrails Active</span>
+    </div>
+  </div>
+
+  <script src="restricted.js"></script>
+</body>
+</html>

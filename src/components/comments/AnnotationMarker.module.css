@@ -1,0 +1,293 @@
+.markerWrapper {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.2s;
+  z-index: 25;
+  touch-action: manipulation;
+}
+
+/* Generous 44px x 44px touch & click target hit-slop to prevent misclicks into underlying iframe */
+.markerWrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.markerWrapper:hover {
+  transform: translate(-50%, -50%) scale(1.3);
+  z-index: 50;
+}
+
+.markerWrapper.selected {
+  transform: translate(-50%, -50%) scale(1.35);
+  z-index: 60;
+}
+
+/* Precision Dot Shape */
+.dotContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 0 2px #ffffff;
+  transition: all 0.2s ease;
+}
+
+.dotContainer.pending {
+  background: #f43f5e;
+}
+
+.dotContainer.inProgress {
+  background: #3b82f6;
+}
+
+.dotContainer.resolved {
+  background: #10b981;
+}
+
+.dotInner {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.95;
+}
+
+/* Pulse ring for active / navigated dot */
+.pulseRing {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(244, 63, 94, 0.7);
+  animation: markerPulse 1.8s infinite cubic-bezier(0.24, 0, 0.38, 1);
+  pointer-events: none;
+}
+
+@keyframes markerPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Hover & Selected Popover Card */
+.markerPopover {
+  position: absolute;
+  background: #FFFFFF;
+  backdrop-filter: blur(12px);
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  width: 250px;
+  box-shadow: 0 16px 32px -4px rgba(0, 0, 0, 0.16), 0 4px 8px -2px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  z-index: 100;
+  color: #1C2433;
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Vertical Placement */
+.popoverAbove {
+  bottom: calc(100% + 10px);
+  top: auto;
+  animation: popoverFadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.popoverBelow {
+  top: calc(100% + 10px);
+  bottom: auto;
+  animation: popoverFadeInDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Horizontal Alignment */
+.alignCenter {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.alignLeft {
+  left: -12px;
+  transform: none;
+}
+
+.alignRight {
+  right: -12px;
+  left: auto;
+  transform: none;
+}
+
+/* Tooltip Carets */
+.markerPopover::after {
+  content: '';
+  position: absolute;
+  border-width: 6px;
+  border-style: solid;
+}
+
+/* Caret for popoverAbove (pointing DOWN) */
+.popoverAbove.alignCenter::after {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-color: #FFFFFF transparent transparent transparent;
+}
+
+.popoverAbove.alignLeft::after {
+  top: 100%;
+  left: 22px;
+  border-color: #FFFFFF transparent transparent transparent;
+}
+
+.popoverAbove.alignRight::after {
+  top: 100%;
+  right: 22px;
+  border-color: #FFFFFF transparent transparent transparent;
+}
+
+/* Caret for popoverBelow (pointing UP) */
+.popoverBelow.alignCenter::after {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-color: transparent transparent #FFFFFF transparent;
+}
+
+.popoverBelow.alignLeft::after {
+  bottom: 100%;
+  left: 22px;
+  border-color: transparent transparent #FFFFFF transparent;
+}
+
+.popoverBelow.alignRight::after {
+  bottom: 100%;
+  right: 22px;
+  border-color: transparent transparent #FFFFFF transparent;
+}
+
+@keyframes popoverFadeInUp {
+  from {
+    opacity: 0;
+    margin-bottom: -6px;
+  }
+  to {
+    opacity: 1;
+    margin-bottom: 0;
+  }
+}
+
+@keyframes popoverFadeInDown {
+  from {
+    opacity: 0;
+    margin-top: -6px;
+  }
+  to {
+    opacity: 1;
+    margin-top: 0;
+  }
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.popoverUser {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popoverAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #EEF2F6;
+  object-fit: cover;
+  border: 1px solid #E2E8F0;
+}
+
+.popoverUsername {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1C2433;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.statusPill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statusPill.pending {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.statusPill.inProgress {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border: 1px solid #93C5FD;
+}
+
+.statusPill.resolved {
+  background: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #6EE7B7;
+}
+
+.popoverContent {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #334155;
+  word-break: break-word;
+  max-height: 80px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.popoverFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #F1F5F9;
+  font-size: 10px;
+  color: #64748B;
+}

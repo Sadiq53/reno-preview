@@ -1,0 +1,87 @@
+{
+  "manifest_version": 3,
+  "name": "Crewvia Vanguard Companion",
+  "version": "1.0.0",
+  "description": "Zero-Plugin Zero-Trust WordPress Access Broker & Runtime Sentinel for Crewvia Vanguard",
+  "permissions": [
+    "cookies",
+    "storage",
+    "tabs",
+    "activeTab",
+    "webNavigation",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "alarms",
+    "scripting"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_sentinel",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://vanguard.crewvia.in/*",
+        "https://*.crewvia.in/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://*.renohub.agency/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["content-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*/wp-admin/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*/wp-admin/*"
+      ],
+      "js": ["sentinel-main.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "restricted.html",
+        "restricted.css",
+        "restricted.js",
+        "sentinel-main.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Crewvia Vanguard Companion",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

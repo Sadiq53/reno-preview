@@ -1,0 +1,272 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Role {
+  ADMIN
+  DEVELOPER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CommentStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum ShareAccessLevel {
+  VIEWER
+  COMMENTER
+}
+
+enum WpRoleTemplate {
+  EDITOR
+  SHOP_MANAGER
+  RESTRICTED_ADMIN
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_STARTED
+  TASK_RESOLVED
+  COMMENT_CREATED
+  QUERY_REPLIED
+  PRIORITY_URGENT
+  PROJECT_ACCESS_GRANTED
+}
+
+model User {
+  id               String         @id @default(uuid())
+  email            String         @unique
+  name             String
+  passwordHash     String
+  role             Role           @default(DEVELOPER)
+  status           UserStatus     @default(ACTIVE)
+  suspendedUntil   DateTime?
+  suspendReason    String?
+  avatarUrl        String?
+  assignments      Assignment[]
+  commentsAuthored Comment[]      @relation("CommentAuthor")
+  commentsResolved Comment[]      @relation("CommentResolver")
+  tasksAssigned    Comment[]      @relation("TaskAssignee")
+  repliesAuthored  CommentReply[]
+  notifications    Notification[]
+  fcmTokens        FcmToken[]
+  auditLogs        AuditLog[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model Client {
+  id          String    @id @default(uuid())
+  name        String
+  email       String
+  phone       String?
+  company     String?
+  instagram   String?
+  linkedin    String?
+  address     String?   @db.Text
+  notes       String?   @db.Text
+  avatarUrl   String?
+  projects    Project[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Project {
+  id                       String         @id @default(uuid())
+  name                     String
+  clientId                 String?
+  client                   Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  clientName               String         @default("")
+  imageUrl                 String?
+  stage                    String         @default("FULL_DEVELOPMENT")
+  category                 String         @default("WORDPRESS")
+  startDate                DateTime?
+  targetDate               DateTime?
+  targetUrl                String?
+  wpAdminUsernameEncrypted String?
+  wpAdminUsernameIv        String?
+  wpAdminUsernameAuthTag   String?
+  wpAdminPasswordEncrypted String?
+  wpAdminPasswordIv        String?
+  wpAdminPasswordAuthTag   String?
+  wpSecretEncrypted        String?
+  wpSecretIv               String?
+  wpSecretAuthTag          String?
+  status                   ProjectStatus  @default(ACTIVE)
+  defaultViewport          String         @default("desktop")
+  allowGuestComments       Boolean        @default(true)
+  requireGuestEmail        Boolean        @default(true)
+  shareExpirationDays      Int            @default(30)
+  autoUnframeProxy         Boolean        @default(true)
+  allowExtensionLogin      Boolean        @default(true)
+  allowProxyLogin          Boolean        @default(false)
+  pages                    ProjectPage[]
+  assignments              Assignment[]
+  comments                 Comment[]
+  notifications            Notification[]
+  shareLinks               ShareLink[]
+  auditLogs                AuditLog[]
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+}
+
+model ProjectPage {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  path         String
+  fullUrl      String
+  title        String
+  isDefault    Boolean   @default(false)
+  isHidden     Boolean   @default(false)
+  displayOrder Int       @default(0)
+  comments     Comment[]
+  createdAt    DateTime  @default(now())
+
+  @@unique([projectId, path])
+}
+
+model Assignment {
+  id             String         @id @default(uuid())
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wpRoleTemplate WpRoleTemplate @default(RESTRICTED_ADMIN)
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  loginGrants    LoginGrant[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([projectId, userId])
+}
+
+model Comment {
+  id                 String        @id @default(uuid())
+  projectId          String
+  project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pageId             String?
+  page               ProjectPage?  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  authorUserId       String?
+  authorUser         User?         @relation("CommentAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  guestAuthorName    String?
+  guestAuthorEmail   String?
+  title              String?
+  content            String        @db.Text
+  notes              String?       @db.Text
+  priority           String        @default("MEDIUM")
+  dueDate            DateTime?
+  assigneeUserId     String?
+  assigneeUser       User?         @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  posX               Float?
+  posY               Float?
+  viewportWidth      Int?
+  viewportHeight     Int?
+  scrollY            Int           @default(0)
+  status             CommentStatus @default(PENDING)
+  resolvedAt         DateTime?
+  resolvedByUserId   String?
+  resolvedByUser     User?         @relation("CommentResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  replies            CommentReply[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model CommentReply {
+  id               String   @id @default(uuid())
+  commentId        String
+  comment          Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  authorUserId     String?
+  authorUser       User?    @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  guestAuthorName  String?
+  content          String   @db.Text
+  createdAt        DateTime @default(now())
+}
+
+model ShareLink {
+  id          String           @id @default(uuid())
+  projectId   String
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  token       String           @unique
+  accessLevel ShareAccessLevel @default(VIEWER)
+  expiresAt   DateTime?
+  isRevoked   Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+}
+
+model LoginGrant {
+  id                   String     @id @default(uuid())
+  tokenHash            String
+  assignmentId         String
+  assignment           Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  wpUserId             Int?
+  sessionDataEncrypted String?    @db.Text
+  sessionDataIv        String?
+  sessionDataAuthTag   String?
+  expiresAt            DateTime
+  usedAt               DateTime?
+  createdAt            DateTime   @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  action    String
+  ipAddress String
+  userAgent String
+  metadata  Json?
+  timestamp DateTime @default(now())
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String?
+  user       User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  message    String           @db.Text
+  link       String?
+  isRead     Boolean          @default(false)
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+model FcmToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  device    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+

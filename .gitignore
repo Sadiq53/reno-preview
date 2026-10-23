@@ -1,24 +1,54 @@
-# Logs
-logs
-*.log
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+
+# Prisma generated client & query engine binaries
+prisma/generated/
+*.node
+*.tmp*
+
+# Environment variables & secrets
+.env
+.env.production
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*serviceaccount*.json*
+*serviceAccount*.json*
+*firebase-adminsdk*.json*
+
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log
 
-node_modules
-dist
-dist-ssr
-*.local
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
-# Editor directories and files
+# OS & Editor files
+.DS_Store
+*.pem
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+scratch/

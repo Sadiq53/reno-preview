@@ -1,0 +1,202 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 0.75rem;
+
+  /* Surfaces & Canvas (70% Allocation) */
+  --background: #FAFAF7;          /* Warm Off-White Page Background */
+  --foreground: #0F172A;          /* Deep Navy Primary Text / Headings */
+  --card: #FFFFFF;                /* Soft White Primary Card Surface */
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+
+  /* Primary Brand & Actions (10% Allocation) */
+  --brand-navy: #0B1F44;          /* Deep Navy Brand Anchor */
+  --primary: #2563EB;             /* Vibrant Blue Action Anchor */
+  --primary-hover: #1D4ED8;       /* Deep Blue Button Hover */
+  --primary-foreground: #FFFFFF;
+
+  /* Secondary Surfaces & Fills */
+  --secondary: #F4F6F8;           /* Cool Off-White Secondary Surface */
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;    /* Slate Body Text */
+  --subtle-foreground: #94A3B8;   /* Light Slate Muted Text */
+
+  /* Active Navigation */
+  --nav-active-bg: #EFF6FF;       /* Soft Blue Tint */
+  --nav-active-fg: #2563EB;       /* Vibrant Blue */
+
+  /* Distinctive Crewvia Brand Gradient (5% Allocation for Key Moments) */
+  --gradient-start: #22C7D6;      /* Cyan Blue */
+  --gradient-mid: #A8DD6A;        /* Lime Midpoint */
+  --gradient-end: #E5E52D;        /* Lime Yellow */
+  --gradient-lime: #D9E83F;
+
+  /* Status Colors */
+  --success: #10B981;             /* Emerald */
+  --success-foreground: #FFFFFF;
+  --warning: #F59E0B;             /* Amber */
+  --warning-foreground: #FFFFFF;
+  --destructive: #EF4444;         /* Red */
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders & Inputs */
+  --border: #E2E8F0;              /* Soft Gray Border */
+  --input: #E2E8F0;
+  --ring: #2563EB;
+
+  /* Sidebar Tokens */
+  --sidebar: #FFFFFF;             /* Soft White Sidebar Surface */
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EFF6FF;
+  --sidebar-accent-foreground: #2563EB;
+  --sidebar-border: #E2E8F0;
+
+  /* Chart & Metric Accents */
+  --chart-1: #2563EB;
+  --chart-2: #22C7D6;
+  --chart-3: #10B981;
+  --chart-4: #F59E0B;
+  --chart-5: #0B1F44;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border-color: var(--border);
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+}
+
+.font-display {
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.015em;
+}
+
+/* Custom Warm Executive Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4F6F8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Distinctive Crewvia Brand Gradient Utilities */
+.crewvia-gradient {
+  background: linear-gradient(135deg, #22C7D6 0%, #A8DD6A 50%, #E5E52D 100%);
+}
+
+.crewvia-gradient-h {
+  background: linear-gradient(90deg, #22C7D6 0%, #A8DD6A 50%, #E5E52D 100%);
+}
+
+.crewvia-gradient-text {
+  background: linear-gradient(135deg, #22C7D6 0%, #A8DD6A 50%, #E5E52D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.crewvia-gradient-border {
+  border-image: linear-gradient(135deg, #22C7D6, #A8DD6A, #E5E52D) 1;
+}
+
+/* Ambient Subtle Canvas Aura */
+.ambient-canvas {
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% -5%,
+    rgba(37, 99, 235, 0.04),
+    rgba(34, 199, 214, 0.03),
+    rgba(250, 250, 247, 0)
+  );
+}
+
+/* Dot Grid Pattern for Canvas */
+.dot-grid {
+  background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Minimalist Card & Panel Elevation */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.02);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: #FFFFFF;
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07);
+  transform: translateY(-1px);
+}
+
+/* Selected Navigation Active Indicator Bar */
+.nav-indicator-active {
+  position: relative;
+}
+
+.nav-indicator-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3.5px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #22C7D6 0%, #A8DD6A 100%);
+}
+
+/* Universal Button Interactivity */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"] {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:disabled,
+button[disabled],
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+  pointer-events: none;
+}

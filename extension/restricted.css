@@ -1,0 +1,120 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #FBFBFC;
+  color: #1C2433;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sentinel-box {
+  background: #FFFFFF;
+  border: 1px solid #FECACA;
+  border-radius: 16px;
+  padding: 36px 32px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.icon-wrap {
+  width: 64px;
+  height: 64px;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  color: #DC2626;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1C2433;
+  margin-bottom: 10px;
+  letter-spacing: -0.3px;
+}
+
+.desc {
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.blocked-badge {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 24px;
+  word-break: break-all;
+}
+
+.blocked-badge code {
+  color: #DC2626;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.btn-primary {
+  background: #224494;
+  color: #FFFFFF;
+  border: 1px solid #224494;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(34, 68, 148, 0.2);
+}
+
+.btn-primary:hover {
+  background: #1B3677;
+  transform: translateY(-1px);
+}
+
+.sentinel-footer {
+  border-top: 1px solid #E2E8F0;
+  padding-top: 16px;
+  font-size: 11px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10B981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
