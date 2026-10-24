@@ -26,6 +26,9 @@ export async function GET(req: Request, { params }: RouteParams) {
           orderBy: { displayOrder: "asc" },
         },
         assignments: {
+          where: {
+            user: { role: "DEVELOPER" },
+          },
           include: {
             user: {
               select: {
@@ -33,6 +36,7 @@ export async function GET(req: Request, { params }: RouteParams) {
                 name: true,
                 email: true,
                 avatarUrl: true,
+                role: true,
               },
             },
           },

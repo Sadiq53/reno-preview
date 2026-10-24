@@ -42,7 +42,10 @@ export async function GET(req: Request, { params }: RouteParams) {
     }
 
     const assignments = await prisma.assignment.findMany({
-      where: { projectId: id },
+      where: {
+        projectId: id,
+        user: { role: "DEVELOPER" },
+      },
       include: {
         user: {
           select: {

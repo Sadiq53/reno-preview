@@ -131,6 +131,7 @@ interface Developer {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  role?: string;
 }
 
 interface PageItem {
@@ -306,6 +307,11 @@ function ProjectDetailContent() {
     }
     return sessions;
   }, [sessions, sessionFilter]);
+
+  // Contractors strictly filter out any administrative accounts
+  const contractorAssignments = useMemo(() => {
+    return assignments.filter((a) => a.user?.role !== "ADMIN");
+  }, [assignments]);
 
   // Modals
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -1171,13 +1177,13 @@ function ProjectDetailContent() {
         >
           <BarChart3 className="h-3.5 w-3.5" />
           <span className="font-display">Developer Progress</span>
-          {assignments.length > 0 && (
+          {contractorAssignments.length > 0 && (
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                 activeTab === "dev-progress" ? "bg-white/20 text-white" : "bg-secondary text-muted-foreground"
               }`}
             >
-              {assignments.length}
+              {contractorAssignments.length}
             </span>
           )}
         </button>
@@ -1326,9 +1332,15 @@ function ProjectDetailContent() {
                 {comments.slice(0, 6).map((c) => (
                   <div key={c.id} className="p-4 hover:bg-secondary/40 transition-colors flex items-center justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 font-display font-bold text-xs mt-0.5">
-                        {c.authorUser?.name ? c.authorUser.name.charAt(0).toUpperCase() : "C"}
-                      </div>
+                      <UserAvatar
+                        user={{
+                          name: c.authorUser?.name || c.guestAuthorName || "Client",
+                          avatarUrl: c.authorUser?.avatarUrl,
+                        }}
+                        size="sm"
+                        withRing={false}
+                        className="h-8 w-8 rounded-xl shrink-0 mt-0.5"
+                      />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-xs font-semibold text-foreground font-display">
@@ -1432,10 +1444,10 @@ function ProjectDetailContent() {
               </div>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="font-display text-2xl font-bold tracking-tight text-foreground">
-                  {assignments.length}
+                  {contractorAssignments.length}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  ({assignments.filter((a) => a.isActive).length} active grants)
+                  ({contractorAssignments.filter((a) => a.isActive).length} active grants)
                 </span>
               </div>
             </div>
@@ -1500,14 +1512,14 @@ function ProjectDetailContent() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-sm font-bold text-foreground">
-                Assigned Contractors & Task Velocity ({assignments.length})
+                Assigned Contractors & Task Velocity ({contractorAssignments.length})
               </h3>
               <span className="text-xs text-muted-foreground">
                 Tasks assigned, pending, in-progress, and resolved per developer
               </span>
             </div>
 
-            {assignments.length === 0 ? (
+            {contractorAssignments.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border/80 bg-card p-10 text-center space-y-3">
                 <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
                   <Users className="size-6" />
@@ -1532,7 +1544,7 @@ function ProjectDetailContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {assignments.map((a) => {
+                {contractorAssignments.map((a) => {
                   const expiryInfo = formatAccessExpiry(a.expiresAt);
                   const devTasks = comments.filter((c) => (c.assigneeUserId === a.userId) || (c.assigneeUser?.id === a.userId));
                   const devResolved = devTasks.filter((c) => c.status === "RESOLVED").length;
@@ -1552,9 +1564,18 @@ function ProjectDetailContent() {
                       {/* Developer Header Row */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary font-bold text-sm shadow-xs font-display">
-                            {a.user.name ? a.user.name.charAt(0).toUpperCase() : "D"}
-                          </div>
+                          <UserAvatar
+                            user={{
+                              name: a.user.name || "Developer",
+                              avatarUrl: a.user.avatarUrl,
+                              email: a.user.email,
+                              status: (a.user as any)?.status,
+                            }}
+                            size="md"
+                            withRing={true}
+                            showStatusIndicator={true}
+                            className="h-11 w-11 rounded-2xl shrink-0"
+                          />
                           <div className="min-w-0">
                             <h4 className="font-display text-sm font-bold text-foreground truncate">
                               {a.user.name}
@@ -3148,14 +3169,14 @@ function ProjectDetailContent() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
-                      {assignments.length === 0 ? (
+                      {contractorAssignments.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="p-8 text-center text-xs text-muted-foreground">
                             No developers assigned yet. Click &quot;Assign Developer&quot; above.
                           </td>
                         </tr>
                       ) : (
-                        assignments.map((a) => {
+                        contractorAssignments.map((a) => {
                           const expiryInfo = formatAccessExpiry(a.expiresAt);
                           return (
                             <tr key={a.id} className="hover:bg-secondary/30 transition-colors">

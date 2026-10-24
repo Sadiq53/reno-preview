@@ -105,29 +105,25 @@ export async function POST(req: Request) {
       }
 
       if (session.user.role === "ADMIN") {
-        // Admin gets direct access. Find or create administrative assignment for tracking
-        if (targetProject.assignments.length > 0) {
-          targetAssignment = targetProject.assignments[0];
-        } else {
-          targetAssignment = await prisma.assignment.upsert({
-            where: {
-              projectId_userId: {
-                projectId: targetProject.id,
-                userId: session.user.id,
-              },
-            },
-            update: {
-              revokedAt: null,
-              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-            },
-            create: {
+        // Admin gets direct access. Always anchor administrative login grant to the admin's own administrative assignment
+        targetAssignment = await prisma.assignment.upsert({
+          where: {
+            projectId_userId: {
               projectId: targetProject.id,
               userId: session.user.id,
-              wpRoleTemplate: "RESTRICTED_ADMIN",
-              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             },
-          });
-        }
+          },
+          update: {
+            revokedAt: null,
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          },
+          create: {
+            projectId: targetProject.id,
+            userId: session.user.id,
+            wpRoleTemplate: "RESTRICTED_ADMIN",
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          },
+        });
       } else {
         // Developer must have active non-revoked assignment
         if (targetProject.assignments.length === 0) {
