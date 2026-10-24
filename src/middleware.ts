@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Public routes (Share links, auth endpoints, static assets, broker session claim, extension version/download)
+  // Public static assets & authentication endpoints
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/share") ||
@@ -16,9 +16,33 @@ export async function middleware(req: NextRequest) {
     pathname === "/api/broker/session-check" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
-    pathname === "/login" ||
-    pathname === "/"
+    pathname.startsWith("/logo") ||
+    pathname.includes(".")
   ) {
+    return NextResponse.next();
+  }
+
+  // Retrieve JWT session token
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development-only-32chars",
+  });
+
+  // Auto-redirect authenticated users from /login directly to their respective workspace
+  if (pathname === "/login") {
+    if (token) {
+      const target = token.role === "ADMIN" ? "/admin" : "/developer";
+      return NextResponse.redirect(new URL(target, req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Auto-redirect authenticated users from landing page (/) to their respective workspace
+  if (pathname === "/") {
+    if (token && !req.nextUrl.searchParams.has("public")) {
+      const target = token.role === "ADMIN" ? "/admin" : "/developer";
+      return NextResponse.redirect(new URL(target, req.url));
+    }
     return NextResponse.next();
   }
 
@@ -45,13 +69,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.rewrite(rewriteUrl);
     }
   }
-
-  // Retrieve JWT session token
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development-only-32chars",
-  });
-
+  
   // If not authenticated, return 401 for API routes or redirect to login for UI pages
   if (!token) {
     // Allow share token scoped API requests through to route handlers for cryptographic DB verification
@@ -112,6 +130,8 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
+    "/login",
     "/admin/:path*",
     "/projects/:path*",
     "/team/:path*",

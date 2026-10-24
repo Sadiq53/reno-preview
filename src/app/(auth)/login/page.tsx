@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { 
   ShieldCheck, 
@@ -20,6 +20,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const urlError = searchParams.get("error");
+  const { data: session, status } = useSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +39,20 @@ function LoginForm() {
     return "";
   });
 
+  // Automatically redirect if already logged in
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = (session.user as any)?.role;
+      const target =
+        callbackUrl && callbackUrl !== "/" && !callbackUrl.includes("/login")
+          ? callbackUrl
+          : role === "DEVELOPER"
+          ? "/developer"
+          : "/admin";
+      router.replace(target);
+    }
+  }, [status, session, callbackUrl, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -45,7 +60,7 @@ function LoginForm() {
 
     try {
       const res = await signIn("credentials", {
-        email,
+        email: email.trim(),
         password,
         redirect: false,
       });
@@ -57,9 +72,17 @@ function LoginForm() {
           setErrorMessage("Invalid email or password. Please try again.");
         }
       } else {
+        // Fetch current session to determine exact authenticated role reliably
         let destination = callbackUrl;
         if (!destination || destination === "/" || destination.includes("/login")) {
-          destination = email.toLowerCase().includes("admin") ? "/admin" : "/developer";
+          try {
+            const sessionRes = await fetch("/api/auth/session");
+            const sessionData = await sessionRes.json();
+            const role = sessionData?.user?.role;
+            destination = role === "DEVELOPER" ? "/developer" : "/admin";
+          } catch {
+            destination = "/admin";
+          }
         }
         router.push(destination);
         router.refresh();
