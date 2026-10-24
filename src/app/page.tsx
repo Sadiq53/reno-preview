@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import HeroSection from "@/components/landing/HeroSection";
+import AgencyLogosGrid from "@/components/landing/AgencyLogosGrid";
 import FeaturesBentoGrid from "@/components/landing/FeaturesBentoGrid";
 import ZeroTrustArchitecture from "@/components/landing/ZeroTrustArchitecture";
 import WorkflowSection from "@/components/landing/WorkflowSection";
@@ -118,7 +119,10 @@ export default function HomePage() {
           {/* 1. Hero Section with Interactive Canvas Simulator */}
           <HeroSection />
 
-          {/* 2. Four Specialized Feature Modules in Bento Grid */}
+          {/* 2. Agency Social Proof 2x4 Logo Grid */}
+          <AgencyLogosGrid />
+
+          {/* 3. Four Specialized Feature Modules in Bento Grid */}
           <FeaturesBentoGrid />
 
           {/* 3. Zero-Trust Security vs Traditional Agency Comparison */}

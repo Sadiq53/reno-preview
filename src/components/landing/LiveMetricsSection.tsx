@@ -1,16 +1,17 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { 
   CheckCircle2, 
   ShieldCheck, 
   Zap, 
   Lock, 
-  FolderKanban, 
   Sparkles,
   Quote,
   Star
 } from "lucide-react";
+import CornerBrackets from "./CornerBrackets";
 
 export default function LiveMetricsSection() {
   const metrics = [
@@ -45,27 +46,54 @@ export default function LiveMetricsSection() {
   ];
 
   return (
-    <section className="relative py-16 sm:py-24 bg-background border-t border-border/60">
+    <section id="metrics" className="relative py-20 sm:py-28 bg-background border-t border-border/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Metric Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-16">
+        {/* Section Header with Gojiberry Style Top Blueprint Pill */}
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <div className="flex justify-center mb-4">
+            <div className="relative inline-block">
+              <CornerBrackets color="border-foreground/30" offset={-3} size={5} />
+              <div className="inline-flex items-center gap-2 rounded-sm border border-border/80 bg-card px-3.5 py-1 text-xs font-mono font-medium text-foreground backdrop-blur-md shadow-2xs">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="text-muted-foreground">Platform Telemetry</span>
+                <span className="text-border">&bull;</span>
+                <span className="text-emerald-600 font-semibold">99.99% Reliability</span>
+              </div>
+            </div>
+          </div>
+
+          <h2 className="font-display text-3xl sm:text-5xl font-medium tracking-tight text-foreground leading-[1.15]">
+            Verified Agency Performance.
+          </h2>
+          <p className="mt-3.5 text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto font-normal">
+            Proven metrics measured across agency teams, freelance contractors, and high-value WordPress production sites.
+          </p>
+        </div>
+
+        {/* Metric Cards Grid Framed in Corner Brackets */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16">
           {metrics.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div
                 key={idx}
-                className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                className="group relative rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs hover:shadow-lg transition-all duration-300"
               >
+                <CornerBrackets color="border-muted-foreground/30 group-hover:border-primary/60 transition-colors" offset={-2} size={6} />
+
                 <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border mb-3 ${item.color}`}>
                   <Icon className="h-5 w-5" />
                 </div>
+
                 <div className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
                   {item.value}
                 </div>
-                <div className="mt-1 text-xs sm:text-sm font-semibold text-foreground">
+
+                <div className="text-xs sm:text-sm font-semibold text-foreground mt-1">
                   {item.label}
                 </div>
-                <div className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">
+
+                <div className="text-[11px] text-muted-foreground mt-1 leading-normal">
                   {item.subtext}
                 </div>
               </div>
@@ -73,46 +101,45 @@ export default function LiveMetricsSection() {
           })}
         </div>
 
-        {/* Agency Executive Testimonial Card */}
-        <div className="relative overflow-hidden rounded-3xl border border-border/90 bg-card p-6 sm:p-10 shadow-lg">
-          <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        {/* Agency Leadership Testimonial Card Framed in Corner Brackets */}
+        <div className="relative rounded-2xl border border-border/90 bg-card/80 p-6 sm:p-10 shadow-lg backdrop-blur-xs">
+          <CornerBrackets color="border-foreground/40" offset={-3} size={8} />
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative">
-            <div className="max-w-3xl space-y-3">
-              <div className="flex items-center gap-1 text-amber-500">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-500 text-amber-500" />
-                ))}
-                <span className="ml-2 text-xs font-bold text-foreground font-display">5.0 Agency Standard</span>
-              </div>
-
-              <blockquote className="text-sm sm:text-lg text-foreground font-medium leading-relaxed italic">
-                &ldquo;Vanguard completely transformed how our agency onboards freelance developers and collects client feedback. We no longer distribute client passwords or install clunky feedback plugins. It paid for itself in week one.&rdquo;
-              </blockquote>
-
-              <div className="pt-2 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-display font-bold text-xs text-primary-foreground">
-                  AS
-                </div>
-                <div>
-                  <div className="font-display text-xs sm:text-sm font-bold text-foreground">
-                    Alex Sterling
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    Founder & Technical Director &bull; Sterling & Co. Digital
-                  </div>
-                </div>
-              </div>
+          <div className="max-w-3xl mx-auto text-center space-y-4">
+            <div className="flex items-center justify-center gap-1 text-amber-500">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-4 w-4 fill-amber-400 stroke-amber-500" />
+              ))}
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 self-start md:self-auto rounded-2xl border border-border/70 bg-secondary/50 p-4">
-              <div className="text-right">
-                <div className="text-xs font-bold text-foreground">42 Client Sites</div>
-                <div className="text-[11px] text-emerald-700 font-semibold">100% Zero-Trust Active</div>
+            <blockquote className="font-display text-base sm:text-xl font-medium text-foreground leading-relaxed italic">
+              &ldquo;Vanguard completely transformed our client onboarding. We no longer install intrusive staging plugins on client sites or hand out master administrator credentials to freelance contractors. Our review cycles dropped from 12 days to under 48 hours.&rdquo;
+            </blockquote>
+
+            <div className="pt-2 flex items-center justify-center gap-3">
+              <Image
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces"
+                alt="Julian Vance, Principal at Apex Digital"
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded-full object-cover border border-border"
+              />
+              <div className="text-left text-xs">
+                <div className="font-bold text-foreground">Julian Vance</div>
+                <div className="text-muted-foreground font-mono text-[11px]">
+                  Principal, Apex Digital Atelier (London &bull; New York)
+                </div>
               </div>
-              <ShieldCheck className="h-8 w-8 text-emerald-600 shrink-0" />
             </div>
           </div>
+        </div>
+
+        {/* Center Crosshair Marker (+) Divider */}
+        <div className="relative mt-16 sm:mt-24 flex items-center justify-center">
+          <div className="w-full border-t border-border/60" />
+          <span className="absolute bg-background px-3 font-mono text-xs text-muted-foreground/50 select-none">
+            +
+          </span>
         </div>
       </div>
     </section>

@@ -5,21 +5,15 @@ import {
   Eye, 
   KeyRound, 
   Share2, 
-  Zap, 
   ShieldCheck, 
-  Lock, 
   Copy, 
   Check, 
   Sparkles, 
-  Monitor, 
-  Tablet, 
-  Smartphone, 
-  ArrowRight,
-  Bell,
-  Code2,
-  Terminal,
-  Activity
+  Bell, 
+  Terminal, 
+  Activity 
 } from "lucide-react";
+import CornerBrackets from "./CornerBrackets";
 
 export default function FeaturesBentoGrid() {
   const [copiedLink, setCopiedLink] = useState(false);
@@ -31,37 +25,45 @@ export default function FeaturesBentoGrid() {
   };
 
   return (
-    <section id="features" className="relative py-20 sm:py-28 bg-secondary/20 border-t border-border/60">
+    <section id="features" className="relative py-20 sm:py-28 bg-background border-t border-border/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-16">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary mb-3">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Engineered for High-Velocity Web Agencies</span>
+        {/* Section Header with Gojiberry Style Top Blueprint Pill */}
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <div className="flex justify-center mb-4">
+            <div className="relative inline-block">
+              <CornerBrackets color="border-foreground/30" offset={-3} size={5} />
+              <div className="inline-flex items-center gap-2 rounded-sm border border-border/80 bg-card px-3.5 py-1 text-xs font-mono font-medium text-foreground backdrop-blur-md shadow-2xs">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="text-muted-foreground">Modular Architecture</span>
+                <span className="text-border">&bull;</span>
+                <span className="text-primary font-semibold">01 — 04 Core Engines</span>
+              </div>
+            </div>
           </div>
-          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-foreground">
+
+          <h2 className="font-display text-3xl sm:text-5xl font-medium tracking-tight text-foreground leading-[1.15]">
             Complete Agency Operating System.
           </h2>
-          <p className="mt-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
-            Four specialized modules that transform how agencies collaborate, collect client feedback, and access remote client WordPress environments without security vulnerabilities.
+          <p className="mt-3.5 text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto font-normal">
+            Four specialized engines that transform how elite digital agencies review websites, capture client feedback, and broker zero-trust WordPress access with zero plugins.
           </p>
         </div>
 
-        {/* Bento Grid Layout (2x2 with dynamic spans) */}
+        {/* Bento Grid Layout (2x2 with dynamic spans & corner brackets) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Card 1: Visual Multi-Device Annotator (Spans 2 columns on LG) */}
-          <div className="lg:col-span-2 group rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-primary/30 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
-            {/* Top decorative glow */}
-            <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl group-hover:bg-cyan-500/15 transition-all" />
+          <div className="lg:col-span-2 group relative rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all duration-300 overflow-hidden flex flex-col justify-between">
+            <CornerBrackets color="border-muted-foreground/30 group-hover:border-primary/60 transition-colors" offset={-2} size={7} />
 
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 border border-cyan-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 border border-cyan-500/20">
                   <Eye className="h-5 w-5" />
                 </div>
-                <span className="rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 px-2.5 py-0.5 text-[11px] font-semibold">
-                  Normalized Coordinates
-                </span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="text-muted-foreground/70">ENGINE</span>
+                  <span className="font-bold text-primary">01</span>
+                </div>
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
@@ -73,21 +75,21 @@ export default function FeaturesBentoGrid() {
             </div>
 
             {/* Custom Interactive Micro-Visual */}
-            <div className="mt-6 rounded-2xl border border-border/80 bg-secondary/50 p-4 relative overflow-hidden">
+            <div className="mt-6 rounded-xl border border-border/80 bg-secondary/30 p-4 relative overflow-hidden">
               <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-border/60 text-xs">
                 <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span>Pin #24 • PosX: 42.15% • PosY: 68.40%</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="rounded bg-card px-2 py-0.5 font-semibold text-foreground border border-border/60">
+                  <span className="rounded bg-card px-2 py-0.5 font-semibold text-foreground border border-border/60 font-mono text-[10px]">
                     Tablet 768px
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-display font-bold text-xs text-primary-foreground">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-display font-bold text-xs text-primary-foreground shadow-xs">
                   #24
                 </div>
                 <div className="min-w-0 flex-1">
@@ -98,7 +100,7 @@ export default function FeaturesBentoGrid() {
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                    "Ensure drawer navigation does not clip on iOS 17 Safari viewports."
+                    &ldquo;Ensure drawer navigation does not clip on iOS 17 Safari viewports.&rdquo;
                   </p>
                 </div>
               </div>
@@ -106,17 +108,18 @@ export default function FeaturesBentoGrid() {
           </div>
 
           {/* Card 2: Zero-Trust WordPress Broker */}
-          <div className="group rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
-            <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl group-hover:bg-emerald-500/15 transition-all" />
+          <div className="group relative rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-emerald-500/40 transition-all duration-300 overflow-hidden flex flex-col justify-between">
+            <CornerBrackets color="border-muted-foreground/30 group-hover:border-emerald-500/60 transition-colors" offset={-2} size={7} />
 
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                   <KeyRound className="h-5 w-5" />
                 </div>
-                <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-semibold">
-                  Zero Plugins
-                </span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="text-muted-foreground/70">ENGINE</span>
+                  <span className="font-bold text-emerald-600">02</span>
+                </div>
               </div>
 
               <h3 className="font-display text-xl font-bold text-foreground tracking-tight">
@@ -128,34 +131,35 @@ export default function FeaturesBentoGrid() {
             </div>
 
             {/* Custom Interactive Micro-Visual */}
-            <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-50/50 p-3.5 space-y-2 text-xs">
+            <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-50/50 p-3.5 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-emerald-950 flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                   Grant Dispatched
                 </span>
-                <span className="font-mono text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">
+                <span className="font-mono text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded font-bold">
                   TTL: 58s
                 </span>
               </div>
-              <div className="text-[10px] text-emerald-900 font-mono bg-white/80 p-2 rounded-lg border border-emerald-200 truncate">
+              <div className="text-[10px] text-emerald-900 font-mono bg-white/90 p-2 rounded-lg border border-emerald-200 truncate shadow-2xs">
                 Bearer: 61e0f9b...a17b (Ephemeral RAM)
               </div>
             </div>
           </div>
 
           {/* Card 3: Cryptographic Client Share Links */}
-          <div className="group rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-amber-500/30 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
-            <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl group-hover:bg-amber-500/15 transition-all" />
+          <div className="group relative rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-amber-500/40 transition-all duration-300 overflow-hidden flex flex-col justify-between">
+            <CornerBrackets color="border-muted-foreground/30 group-hover:border-amber-500/60 transition-colors" offset={-2} size={7} />
 
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
                   <Share2 className="h-5 w-5" />
                 </div>
-                <span className="rounded-full bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 text-[11px] font-semibold">
-                  Zero Signup Friction
-                </span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="text-muted-foreground/70">ENGINE</span>
+                  <span className="font-bold text-amber-600">03</span>
+                </div>
               </div>
 
               <h3 className="font-display text-xl font-bold text-foreground tracking-tight">
@@ -167,14 +171,14 @@ export default function FeaturesBentoGrid() {
             </div>
 
             {/* Custom Interactive Share Link Mock */}
-            <div className="mt-6 rounded-2xl border border-border/80 bg-secondary/50 p-3.5 space-y-2.5">
-              <div className="flex items-center gap-1.5 bg-card p-1 rounded-xl border border-border/60 text-xs">
+            <div className="mt-6 rounded-xl border border-border/80 bg-secondary/30 p-3.5 space-y-2.5">
+              <div className="flex items-center gap-1.5 bg-card p-1 rounded-lg border border-border/60 text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveShareRole("COMMENTER")}
-                  className={`flex-1 py-1 rounded-lg text-center font-semibold text-[11px] transition-all cursor-pointer ${
+                  className={`flex-1 py-1 rounded-md text-center font-semibold text-[11px] transition-all cursor-pointer ${
                     activeShareRole === "COMMENTER"
-                      ? "bg-primary text-primary-foreground shadow-xs"
+                      ? "bg-foreground text-background shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -183,9 +187,9 @@ export default function FeaturesBentoGrid() {
                 <button
                   type="button"
                   onClick={() => setActiveShareRole("VIEWER")}
-                  className={`flex-1 py-1 rounded-lg text-center font-semibold text-[11px] transition-all cursor-pointer ${
+                  className={`flex-1 py-1 rounded-md text-center font-semibold text-[11px] transition-all cursor-pointer ${
                     activeShareRole === "VIEWER"
-                      ? "bg-primary text-primary-foreground shadow-xs"
+                      ? "bg-foreground text-background shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -193,14 +197,14 @@ export default function FeaturesBentoGrid() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-card px-2.5 py-1.5 rounded-xl border border-border/60 text-[11px]">
+              <div className="flex items-center gap-1.5 bg-card px-2.5 py-1.5 rounded-lg border border-border/60 text-[11px]">
                 <span className="font-mono truncate text-muted-foreground flex-1">
                   vanguard.agency/share/tk_84f9...
                 </span>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="p-1 rounded-lg text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                  className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                   title="Copy share link"
                 >
                   {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
@@ -210,17 +214,18 @@ export default function FeaturesBentoGrid() {
           </div>
 
           {/* Card 4: Realtime Pipeline & FCM Web Push (Spans 2 columns on LG) */}
-          <div className="lg:col-span-2 group rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-primary/30 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
-            <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl group-hover:bg-blue-500/15 transition-all" />
+          <div className="lg:col-span-2 group relative rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all duration-300 overflow-hidden flex flex-col justify-between">
+            <CornerBrackets color="border-muted-foreground/30 group-hover:border-primary/60 transition-colors" offset={-2} size={7} />
 
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-primary border border-blue-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-primary border border-blue-500/20">
                   <Bell className="h-5 w-5" />
                 </div>
-                <span className="rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-0.5 text-[11px] font-semibold">
-                  SSE + FCM Push
-                </span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="text-muted-foreground/70">ENGINE</span>
+                  <span className="font-bold text-primary">04</span>
+                </div>
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
@@ -232,7 +237,7 @@ export default function FeaturesBentoGrid() {
             </div>
 
             {/* Custom Terminal Stream Mock */}
-            <div className="mt-6 rounded-2xl border border-border/90 bg-slate-950 text-slate-100 p-4 font-mono text-[11px] space-y-1.5 shadow-inner">
+            <div className="mt-6 rounded-xl border border-border/90 bg-slate-950 text-slate-100 p-4 font-mono text-[11px] space-y-1.5 shadow-inner">
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[10px] text-slate-400">
                 <span className="flex items-center gap-1.5">
                   <Terminal className="h-3 w-3 text-cyan-400" />
@@ -244,19 +249,27 @@ export default function FeaturesBentoGrid() {
                 </span>
               </div>
               <div className="text-slate-300 flex items-center gap-2 truncate">
-                <span className="text-cyan-400">[SSE:200]</span>
-                <span>COMMENT_CREATED: "Sarah dropped pin on /collection"</span>
+                <span className="text-cyan-400 font-bold">[SSE:200]</span>
+                <span>COMMENT_CREATED: &ldquo;Sarah dropped pin on /collection&rdquo;</span>
               </div>
               <div className="text-slate-300 flex items-center gap-2 truncate">
-                <span className="text-emerald-400">[FCM:PUSH]</span>
+                <span className="text-emerald-400 font-bold">[FCM:PUSH]</span>
                 <span>DESKTOP_ALERT delivered to Mustafa (Restricted Dev)</span>
               </div>
               <div className="text-slate-400 flex items-center gap-2 truncate text-[10px]">
-                <span className="text-amber-400">[AUDIT:LOG]</span>
+                <span className="text-amber-400 font-bold">[AUDIT:LOG]</span>
                 <span>Single-use WP login grant consumed by Chrome Extension Sentinel</span>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Center Crosshair Marker (+) Divider */}
+        <div className="relative mt-16 sm:mt-24 flex items-center justify-center">
+          <div className="w-full border-t border-border/60" />
+          <span className="absolute bg-background px-3 font-mono text-xs text-muted-foreground/50 select-none">
+            +
+          </span>
         </div>
       </div>
     </section>

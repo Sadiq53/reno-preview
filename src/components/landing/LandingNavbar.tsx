@@ -5,16 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { 
-  ShieldCheck, 
   ArrowRight, 
   Menu, 
   X, 
-  Sparkles,
-  LayoutDashboard,
-  Lock,
-  Eye,
-  CheckCircle2
+  ShieldCheck, 
+  LayoutDashboard
 } from "lucide-react";
+import CornerBrackets from "./CornerBrackets";
 
 export default function LandingNavbar() {
   const { data: session, status } = useSession();
@@ -30,11 +27,12 @@ export default function LandingNavbar() {
   }, []);
 
   const navLinks = [
-    { label: "Features", href: "#features" },
-    { label: "Live Canvas", href: "#interactive-preview" },
-    { label: "Zero-Trust WP", href: "#security" },
-    { label: "Workflow", href: "#workflow" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Visual Annotator", sup: "01", href: "#interactive-preview" },
+    { label: "Zero-Trust WP", sup: "02", href: "#security" },
+    { label: "Client Sharing", sup: "03", href: "#features" },
+    { label: "Workflow", sup: "04", href: "#workflow" },
+    { label: "Metrics", sup: "05", href: "#metrics" },
+    { label: "FAQ", sup: "06", href: "#faq" },
   ];
 
   const userRole = (session?.user as any)?.role;
@@ -44,76 +42,85 @@ export default function LandingNavbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "border-b border-border/80 bg-card/90 backdrop-blur-xl shadow-xs"
-          : "border-b border-border/40 bg-card/60 backdrop-blur-md"
+          ? "border-b border-border/80 bg-background/90 backdrop-blur-xl shadow-xs py-3"
+          : "border-b border-border/40 bg-background/60 backdrop-blur-md py-4"
       }`}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Brand Logo & Status */}
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Brand Logo & Subtle Blueprint Accent */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 group" title="Crewvia Vanguard">
+          <Link href="/" className="flex items-center gap-2.5 group" title="Crewvia Vanguard">
             <Image
               src="/logo/vanguard-horizontal.png"
               alt="Crewvia Vanguard"
-              width={140}
-              height={28}
+              width={145}
+              height={30}
               className="h-7 w-auto object-contain transition-transform group-hover:scale-[1.02]"
               priority
             />
           </Link>
-
-          <span className="hidden text-muted-foreground/30 sm:inline">/</span>
-
-          <div className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-800 md:inline-flex">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span>Zero-Trust Active</span>
-          </div>
         </div>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-1 rounded-2xl border border-border/60 bg-secondary/50 p-1 shadow-2xs lg:flex">
+        {/* Center: Gojiberry Style Numbered Navigation with Superscripts */}
+        <nav className="hidden items-center gap-7 lg:flex">
           {navLinks.map((link) => (
             <a
               key={link.label}
               href={link.href}
-              className="rounded-xl px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-card hover:text-foreground hover:shadow-2xs"
+              className="group text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors flex items-baseline gap-1"
             >
-              {link.label}
+              <span>{link.label}</span>
+              <sup className="text-[10px] font-mono text-muted-foreground group-hover:text-primary transition-colors">
+                {link.sup}
+              </sup>
             </a>
           ))}
         </nav>
 
-        {/* Action Controls & Session State */}
-        <div className="flex items-center gap-2.5">
+        {/* Right Actions: Technical Corner-Bracketed Buttons */}
+        <div className="flex items-center gap-3">
           {status === "authenticated" && session?.user ? (
-            <Link
-              href={dashboardHref}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-95 cursor-pointer"
-            >
-              <LayoutDashboard className="h-3.5 w-3.5" />
-              <span>
-                {userRole === "DEVELOPER" ? "Developer Workspace" : "Agency Hub"}
-              </span>
-              <ArrowRight className="h-3 w-3" />
-            </Link>
+            <div className="relative">
+              <CornerBrackets color="border-primary/60" offset={-4} size={6} />
+              <Link
+                href={dashboardHref}
+                className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-4 py-2 text-xs font-semibold hover:bg-foreground/90 transition-all active:scale-95 shadow-xs"
+              >
+                <div className="flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground text-[10px]">
+                  <ArrowRight className="h-3 w-3" />
+                </div>
+                <span>
+                  {userRole === "DEVELOPER" ? "Developer Portal" : "Agency Hub"}
+                </span>
+              </Link>
+            </div>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="hidden rounded-xl border border-border/80 bg-card px-3.5 py-2 text-xs font-semibold text-foreground transition-all hover:bg-secondary hover:border-foreground/20 shadow-2xs sm:inline-flex cursor-pointer"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-95 cursor-pointer"
-              >
-                <span>Launch Portal</span>
-                <ArrowRight className="h-3 w-3" />
-              </Link>
+              {/* Secondary Login with subtle corner brackets */}
+              <div className="relative hidden sm:inline-block">
+                <CornerBrackets color="border-border hover:border-foreground/40" offset={-3} size={5} />
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary/60 rounded-md transition-colors"
+                >
+                  Login
+                </Link>
+              </div>
+
+              {/* Primary Launch Action with Embedded Arrow Box & Corner Brackets */}
+              <div className="relative">
+                <CornerBrackets color="border-primary" offset={-4} size={7} />
+                <Link
+                  href="/login"
+                  className="inline-flex items-center rounded-lg border border-border/80 bg-card pl-1.5 pr-4 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary/40 transition-all active:scale-95 shadow-xs group"
+                >
+                  {/* Embedded Arrow Icon Box */}
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground mr-2.5 shadow-xs transition-transform group-hover:translate-x-0.5">
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                  <span>Launch Agency Hub</span>
+                </Link>
+              </div>
             </>
           )}
 
@@ -131,26 +138,28 @@ export default function LandingNavbar() {
 
       {/* Mobile Slide-down Drawer */}
       {mobileMenuOpen && (
-        <div className="border-b border-border/80 bg-card/95 px-4 py-4 shadow-xl backdrop-blur-xl lg:hidden animate-in slide-in-from-top-2 duration-200">
-          <div className="flex flex-col gap-1.5">
+        <div className="border-b border-border/80 bg-background/98 px-6 py-5 shadow-2xl backdrop-blur-2xl lg:hidden animate-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col gap-2.5">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition-colors"
+                className="flex items-center justify-between py-2 text-sm font-medium text-foreground hover:text-primary transition-colors border-b border-border/40"
               >
-                {link.label}
+                <span>{link.label}</span>
+                <span className="font-mono text-xs text-muted-foreground">{link.sup}</span>
               </a>
             ))}
-            <div className="mt-3 pt-3 border-t border-border/60 flex flex-col gap-2">
+
+            <div className="mt-4 pt-3 flex flex-col gap-2.5">
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm"
+                className="flex items-center justify-center gap-2 rounded-xl bg-foreground text-background px-4 py-3 text-xs font-bold shadow-sm"
               >
-                <span>Launch Vanguard Workspace</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <span>Launch Agency Portal</span>
+                <ArrowRight className="h-4 w-4 text-primary" />
               </Link>
             </div>
           </div>

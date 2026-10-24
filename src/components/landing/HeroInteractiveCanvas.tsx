@@ -21,8 +21,11 @@ import {
   Send,
   Eye,
   KeyRound,
-  Check
+  Check,
+  ChevronLeft,
+  Home
 } from "lucide-react";
+import CornerBrackets from "./CornerBrackets";
 
 type ViewportMode = "desktop" | "tablet" | "mobile";
 
@@ -40,11 +43,19 @@ interface AnnotationPin {
   repliesCount: number;
 }
 
-export default function HeroInteractiveCanvas() {
+interface HeroInteractiveCanvasProps {
+  previewUrl?: string;
+}
+
+export default function HeroInteractiveCanvas({
+  previewUrl = "https://apex-luxury.com/collection",
+}: HeroInteractiveCanvasProps) {
   const [viewport, setViewport] = useState<ViewportMode>("desktop");
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [isReloading, setIsReloading] = useState(false);
-  const [activePinId, setActivePinId] = useState<number | null>(2); // Default to pin 2 open
+  const [activePinId, setActivePinId] = useState<number | null>(2); // Default pin 2 active
+  const [wpBrokerSimulated, setWpBrokerSimulated] = useState(false);
+  const [wpBrokerStatus, setWpBrokerStatus] = useState<string | null>(null);
+
   const [pins, setPins] = useState<AnnotationPin[]>([
     {
       id: 1,
@@ -53,7 +64,7 @@ export default function HeroInteractiveCanvas() {
       title: "Header Navigation Clearance",
       author: "Sarah Jenkins",
       role: "CLIENT",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=faces",
       time: "10m ago",
       content: "Can we increase the logo padding by 12px? On smaller resolutions it feels tight against the menu.",
       status: "RESOLVED",
@@ -66,7 +77,7 @@ export default function HeroInteractiveCanvas() {
       title: "Hero CTA Glassmorphism",
       author: "Mustafa Dev",
       role: "DEVELOPER",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=mustafa",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces",
       time: "2m ago",
       content: "Applying custom cyan-lime gradient hover transition. Tested across Chrome & Safari viewports.",
       status: "IN_PROGRESS",
@@ -76,10 +87,10 @@ export default function HeroInteractiveCanvas() {
       id: 3,
       posX: 78,
       posY: 68,
-      title: "Typography Alignment",
+      title: "Retina Font Rendering",
       author: "Sadiq (Owner)",
       role: "ADMIN",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sadiq",
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop&crop=faces",
       time: "Just now",
       content: "Verify Space Grotesk font weights render sharply across HiDPI retina displays.",
       status: "PENDING",
@@ -104,6 +115,21 @@ export default function HeroInteractiveCanvas() {
     );
   };
 
+  const handleSimulateWpLogin = () => {
+    setWpBrokerSimulated(true);
+    setWpBrokerStatus("Negotiating Ephemeral Session Grant...");
+    setTimeout(() => {
+      setWpBrokerStatus("Session Token Dispatched to Companion (TTL: 60s)");
+      setTimeout(() => {
+        setWpBrokerStatus("Authenticated! Zero-Trust WP Dashboard Launched ✓");
+        setTimeout(() => {
+          setWpBrokerSimulated(false);
+          setWpBrokerStatus(null);
+        }, 3000);
+      }, 1200);
+    }, 1000);
+  };
+
   const activePin = pins.find((p) => p.id === activePinId);
 
   // Compute container width based on selected viewport
@@ -116,41 +142,54 @@ export default function HeroInteractiveCanvas() {
 
   const handleReload = () => {
     setIsReloading(true);
-    setTimeout(() => setIsReloading(false), 600);
+    setTimeout(() => setIsReloading(false), 500);
   };
 
   return (
     <div className="relative w-full select-none">
-      {/* Outer Glow Halo */}
-      <div className="pointer-events-none absolute -inset-2 rounded-3xl bg-gradient-to-r from-cyan-500/15 via-emerald-500/15 to-blue-500/15 blur-2xl opacity-75" />
+      {/* Outer Subtle Ambient Aura */}
+      <div className="pointer-events-none absolute -inset-2 rounded-3xl bg-gradient-to-r from-cyan-500/10 via-emerald-500/10 to-amber-500/10 blur-2xl opacity-75" />
 
-      {/* Main Glassmorphic Canvas Window Container */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-2xl">
-        {/* Top Control Bar / Browser Chrome */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-secondary/40 px-4 py-3 sm:px-6">
-          {/* Left: Window Dots & Navigation Controls */}
+      {/* Main Glassmorphic Canvas Window Container Framed in Corner Brackets */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-2xl">
+        <CornerBrackets color="border-foreground/30" offset={-2} size={7} />
+
+        {/* Top Browser Chrome & Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-secondary/30 px-4 py-3 sm:px-6">
+          {/* Left: Window Dots & Navigation Controls (Matching Gojiberry Screenshot 2) */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-full bg-rose-500/80 shadow-xs" />
-              <span className="h-3 w-3 rounded-full bg-amber-500/80 shadow-xs" />
-              <span className="h-3 w-3 rounded-full bg-emerald-500/80 shadow-xs" />
+              <span className="h-3 w-3 rounded-full bg-rose-500/80 shadow-2xs" />
+              <span className="h-3 w-3 rounded-full bg-amber-500/80 shadow-2xs" />
+              <span className="h-3 w-3 rounded-full bg-emerald-500/80 shadow-2xs" />
             </div>
 
-            <button
-              type="button"
-              onClick={handleReload}
-              className="hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary sm:inline-flex transition-colors cursor-pointer"
-              title="Reload visual preview"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isReloading ? "animate-spin text-primary" : ""}`} />
-            </button>
+            <div className="hidden sm:flex items-center gap-1 text-muted-foreground/80 pl-2">
+              <span className="p-1 hover:text-foreground cursor-pointer rounded">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </span>
+              <span className="p-1 hover:text-foreground cursor-pointer rounded">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={handleReload}
+                className="p-1 hover:text-foreground cursor-pointer rounded transition-colors"
+                title="Reload preview"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isReloading ? "animate-spin text-primary" : ""}`} />
+              </button>
+              <span className="p-1 hover:text-foreground cursor-pointer rounded">
+                <Home className="h-3.5 w-3.5" />
+              </span>
+            </div>
           </div>
 
           {/* Center: Simulated URL Address Pill */}
-          <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-background/90 px-3.5 py-1.5 text-xs text-muted-foreground shadow-2xs max-w-xs sm:max-w-sm w-full sm:w-auto truncate">
+          <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-background/95 px-3.5 py-1.5 text-xs text-muted-foreground shadow-2xs max-w-xs sm:max-w-md w-full sm:w-auto truncate">
             <Lock className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
             <span className="font-mono text-[11px] truncate text-foreground font-medium">
-              https://apex-luxury.com/collection
+              {previewUrl}
             </span>
             <span className="ml-auto hidden rounded bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 text-[9px] font-semibold sm:inline-block">
               200 OK
@@ -210,7 +249,7 @@ export default function HeroInteractiveCanvas() {
         </div>
 
         {/* Visual Canvas Viewport Workspace Area */}
-        <div className="relative min-h-[460px] sm:min-h-[520px] bg-slate-950/5 flex items-center justify-center p-3 sm:p-6 overflow-hidden dot-grid">
+        <div className="relative min-h-[460px] sm:min-h-[520px] bg-secondary/15 flex items-center justify-center p-3 sm:p-6 overflow-hidden dot-grid">
           {/* Scalable Website Mockup Container */}
           <div
             className={`relative w-full rounded-2xl border border-border/90 bg-card shadow-2xl transition-all duration-500 ease-out overflow-hidden ${viewportWidthClass}`}
@@ -221,19 +260,41 @@ export default function HeroInteractiveCanvas() {
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-primary" />
                 <span className="font-display text-xs font-bold tracking-widest uppercase text-foreground">
-                  APEX HORLOGERIE
+                  APEX LUXURY ATELIER
                 </span>
               </div>
               <div className="hidden sm:flex items-center gap-4 text-xs font-medium text-muted-foreground">
                 <span className="text-foreground font-semibold">Chronographs</span>
-                <span>Atelier</span>
+                <span>Haute Horlogerie</span>
                 <span>Heritage</span>
-                <span>Contact</span>
+                <span>Concierge</span>
               </div>
-              <div className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                Book Viewing
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSimulateWpLogin}
+                  className="rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-1 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Simulate 1-Click Zero-Trust WordPress Login"
+                >
+                  <KeyRound className="h-3 w-3 text-emerald-600" />
+                  <span className="hidden sm:inline">1-Click WP Login</span>
+                </button>
+                <div className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                  Book Viewing
+                </div>
               </div>
             </div>
+
+            {/* Notification Toast If Simulated WP Login Triggered */}
+            {wpBrokerStatus && (
+              <div className="bg-emerald-950 text-emerald-100 px-4 py-2 text-xs font-mono flex items-center justify-between border-b border-emerald-800 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>{wpBrokerStatus}</span>
+                </div>
+                <span className="text-[10px] text-emerald-400 font-sans">AES-256-GCM RAM Handshake</span>
+              </div>
+            )}
 
             {/* Mock Client Website Body */}
             <div className="p-6 sm:p-8 space-y-6 relative">
@@ -245,17 +306,17 @@ export default function HeroInteractiveCanvas() {
               <div className="max-w-lg space-y-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <Sparkles className="h-3 w-3 text-primary" />
-                  Limited Edition 2026
+                  Limited Edition 2026 Atelier Series
                 </span>
                 <h3 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-tight">
                   Precision Engineering for Eternal Timepieces.
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Crafted by master horologists in Geneva. Titanium casing with perpetual calendar and sapphire anti-reflective crystal.
+                  Hand-crafted by master horologists in Geneva. Titanium casing with perpetual calendar, 72-hour power reserve, and anti-reflective sapphire crystal.
                 </p>
 
                 <div className="flex items-center gap-3 pt-2">
-                  <div className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm">
+                  <div className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs">
                     Inquire Availability
                   </div>
                   <div className="rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-foreground">
@@ -367,10 +428,11 @@ export default function HeroInteractiveCanvas() {
 
                 {/* Author Info */}
                 <div className="flex items-center gap-2 mb-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={activePin.avatar}
                     alt={activePin.author}
+                    width={24}
+                    height={24}
                     className="h-6 w-6 rounded-full border border-border object-cover"
                   />
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -421,7 +483,7 @@ export default function HeroInteractiveCanvas() {
             </div>
             <div>
               <div className="font-semibold text-foreground text-[11px]">Zero-Trust WP Broker</div>
-              <div className="text-[10px] text-muted-foreground">Single-use token • 60s TTL RAM</div>
+              <div className="text-[10px] text-muted-foreground">Single-use token • 60s TTL in RAM</div>
             </div>
           </div>
 
@@ -431,7 +493,7 @@ export default function HeroInteractiveCanvas() {
             </div>
             <div>
               <div className="font-semibold text-foreground text-[11px]">Pinpoint Precision</div>
-              <div className="text-[10px] text-muted-foreground">Normalized % coordinates</div>
+              <div className="text-[10px] text-muted-foreground">Normalized % device coordinates</div>
             </div>
           </div>
 

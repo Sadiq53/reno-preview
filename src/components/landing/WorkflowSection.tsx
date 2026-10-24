@@ -12,6 +12,7 @@ import {
   Layers,
   ShieldCheck
 } from "lucide-react";
+import CornerBrackets from "./CornerBrackets";
 
 export default function WorkflowSection() {
   const steps = [
@@ -50,60 +51,81 @@ export default function WorkflowSection() {
   ];
 
   return (
-    <section id="workflow" className="relative py-20 sm:py-28 bg-secondary/30 border-t border-border/60">
+    <section id="workflow" className="relative py-20 sm:py-28 bg-background border-t border-border/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-16">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary mb-3">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Frictionless 4-Step Agency Workflow</span>
+        {/* Section Header with Gojiberry Style Top Blueprint Pill */}
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <div className="flex justify-center mb-4">
+            <div className="relative inline-block">
+              <CornerBrackets color="border-foreground/30" offset={-3} size={5} />
+              <div className="inline-flex items-center gap-2 rounded-sm border border-border/80 bg-card px-3.5 py-1 text-xs font-mono font-medium text-foreground backdrop-blur-md shadow-2xs">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                <span className="text-muted-foreground">End-to-End Flow</span>
+                <span className="text-border">&bull;</span>
+                <span className="text-primary font-semibold">4-Phase Pipeline</span>
+              </div>
+            </div>
           </div>
-          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-foreground">
-            How Elite Agencies Operate with Vanguard.
+
+          <h2 className="font-display text-3xl sm:text-5xl font-medium tracking-tight text-foreground leading-[1.15]">
+            How Leading Agencies Ship Faster.
           </h2>
-          <p className="mt-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
-            From initial client kickoff to resolved visual bugs and secure development access — engineered for maximum velocity and zero risk.
+          <p className="mt-3.5 text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto font-normal">
+            A frictionless agency pipeline that eliminates chaotic screenshots, protects client site security, and accelerates client sign-offs.
           </p>
         </div>
 
-        {/* 4 Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+        {/* 4-Step Cards Grid Framed in Corner Brackets */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div
                 key={item.step}
-                className="group rounded-3xl border border-border/80 bg-card p-6 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 relative flex flex-col justify-between"
+                className="group relative rounded-2xl border border-border/80 bg-card p-6 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all duration-300 flex flex-col justify-between"
               >
+                <CornerBrackets color="border-muted-foreground/30 group-hover:border-primary/60 transition-colors" offset={-2} size={6} />
+
                 <div>
-                  <div className="flex items-center justify-between mb-5">
-                    <span className="font-display text-2xl font-bold text-muted-foreground/40 group-hover:text-primary transition-colors">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-2xl font-bold text-foreground/80 group-hover:text-primary transition-colors">
                       {item.step}
                     </span>
-                    <span className="rounded-full bg-secondary text-foreground border border-border/70 px-2.5 py-0.5 text-[10px] font-semibold">
+                    <span className="rounded-full bg-secondary text-foreground/80 border border-border/60 px-2 py-0.5 text-[10px] font-mono font-semibold">
                       {item.badge}
                     </span>
                   </div>
 
-                  <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.color} border border-border/60 group-hover:scale-105 transition-transform`}>
-                    <Icon className="h-6 w-6" />
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary/80 text-foreground mb-4 border border-border/70 group-hover:scale-105 transition-transform">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
 
-                  <h3 className="font-display text-lg font-bold text-foreground tracking-tight">
+                  <h3 className="font-display text-base font-bold text-foreground tracking-tight">
                     {item.title}
                   </h3>
+
                   <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
                     {item.description}
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-medium text-[11px]">Phase {idx + 1} of 4</span>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 opacity-60 group-hover:opacity-100 transition-opacity" />
+                <div className="mt-6 pt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-mono text-[10px] text-muted-foreground/75">
+                    Phase {item.step} of 04
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-primary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>
               </div>
             );
           })}
+        </div>
+
+        {/* Center Crosshair Marker (+) Divider */}
+        <div className="relative mt-16 sm:mt-24 flex items-center justify-center">
+          <div className="w-full border-t border-border/60" />
+          <span className="absolute bg-background px-3 font-mono text-xs text-muted-foreground/50 select-none">
+            +
+          </span>
         </div>
       </div>
     </section>
