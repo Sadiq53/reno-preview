@@ -1,21 +1,18 @@
-"use client";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+export default async function ProjectTasksRedirectPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
 
-export default function TasksRedirectPage() {
-  const params = useParams();
-  const router = useRouter();
+  if (session?.user?.role === "DEVELOPER") {
+    redirect(`/developer/tasks?projectId=${id}`);
+  }
 
-  useEffect(() => {
-    if (params?.id) {
-      router.replace(`/admin/projects/${params.id}?tab=tasks`);
-    }
-  }, [params?.id, router]);
-
-  return (
-    <div className="flex h-64 items-center justify-center text-xs text-muted-foreground">
-      Redirecting to Project Task Board...
-    </div>
-  );
+  redirect(`/projects/${id}?tab=tasks`);
 }

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const archiver = require("archiver");
+import { ZipArchive } from "archiver";
 
 /**
  * GET /api/extension/download
@@ -24,10 +23,7 @@ export async function GET() {
       }
     }
 
-    const archive =
-      typeof archiver === "function"
-        ? archiver("zip", { zlib: { level: 9 } })
-        : new archiver.ZipArchive({ zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
 
     const chunks: Buffer[] = [];
     archive.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -58,9 +54,9 @@ export async function GET() {
       },
     });
   } catch (error: any) {
-    console.error("[EXTENSION_DOWNLOAD_ERROR]:", error);
+    console.error("[EXTENSION_DOWNLOAD_ERROR]", error);
     return NextResponse.json(
-      { error: "Failed to generate extension zip archive", details: error.message },
+      { error: "Failed to package extension bundle.", details: error.message },
       { status: 500 }
     );
   }
