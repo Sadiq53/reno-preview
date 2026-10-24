@@ -101,7 +101,10 @@ interface SessionItem {
     name: string;
     email: string;
     avatarUrl?: string | null;
+    role?: string;
   };
+  isCurrentUser?: boolean;
+  isAdmin?: boolean;
   wpRoleTemplate: string;
   status: "ACTIVE" | "PENDING_DISPATCH" | "CONSUMED" | "EXPIRED" | "REVOKED";
   device: string;
@@ -289,9 +292,20 @@ function ProjectDetailContent() {
   // Sessions Sentinel State
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [sessionStats, setSessionStats] = useState<any>(null);
+  const [sessionFilter, setSessionFilter] = useState<"ALL" | "DEVELOPERS" | "ADMIN">("ALL");
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isPurgingSessions, setIsPurgingSessions] = useState(false);
   const [isRevokingSessionId, setIsRevokingSessionId] = useState<string | null>(null);
+
+  const filteredSessions = useMemo(() => {
+    if (sessionFilter === "DEVELOPERS") {
+      return sessions.filter((s) => !s.isAdmin && s.developer.role !== "ADMIN");
+    }
+    if (sessionFilter === "ADMIN") {
+      return sessions.filter((s) => s.isAdmin || s.developer.role === "ADMIN");
+    }
+    return sessions;
+  }, [sessions, sessionFilter]);
 
   // Modals
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -452,7 +466,7 @@ function ProjectDetailContent() {
   }, [projectId, fetchAllProjectData, fetchSessions]);
 
   // Session Sentinel Handlers
-  const handleRevokeSession = async (grantId: string) => {
+  const handleRevokeSession = async (grantId: string, isSelf = false) => {
     setIsRevokingSessionId(grantId);
     try {
       const res = await fetch(`/api/projects/${projectId}/sessions?grantId=${grantId}`, {
@@ -460,13 +474,17 @@ function ProjectDetailContent() {
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSuccessMessage("Developer login session revoked successfully.");
+        setSuccessMessage(
+          isSelf
+            ? "Your WordPress login session was terminated and revoked successfully."
+            : "Developer WordPress session terminated and revoked successfully. Team project assignment remains active."
+        );
         if (data.domain) {
           window.postMessage({ type: "VANGUARD_REVOKE_WP_SESSION", domain: data.domain }, "*");
           window.postMessage({ type: "RENO_REVOKE_WP_SESSION", domain: data.domain }, "*");
         }
         fetchSessions();
-        setTimeout(() => setSuccessMessage(""), 3500);
+        setTimeout(() => setSuccessMessage(""), 4000);
       } else {
         const err = await res.json().catch(() => ({}));
         setErrorMessage(err.error || "Failed to revoke session");
@@ -2832,9 +2850,16 @@ function ProjectDetailContent() {
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
                       Unique Contractors
                     </span>
-                    <span className="font-display text-xl font-bold text-foreground mt-1 block">
-                      {sessionStats?.uniqueDevelopers || 0}
-                    </span>
+                    <div className="mt-1 flex items-baseline gap-2">
+                      <span className="font-display text-xl font-bold text-foreground">
+                        {sessionStats?.uniqueDevelopers || 0}
+                      </span>
+                      {sessionStats?.adminSessionsCount > 0 && (
+                        <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+                          +{sessionStats.adminSessionsCount} Admin
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-2xs">
@@ -2847,6 +2872,49 @@ function ProjectDetailContent() {
                   </div>
                 </div>
 
+                {/* Filter Tabs & Scope Toggle */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="inline-flex items-center rounded-xl border border-border/80 bg-secondary/50 p-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSessionFilter("ALL")}
+                      className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        sessionFilter === "ALL"
+                          ? "bg-card text-foreground font-semibold shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      All Grants ({sessions.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSessionFilter("DEVELOPERS")}
+                      className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        sessionFilter === "DEVELOPERS"
+                          ? "bg-card text-foreground font-semibold shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Contractors & Devs ({sessions.filter((s) => !s.isAdmin && s.developer.role !== "ADMIN").length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSessionFilter("ADMIN")}
+                      className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                        sessionFilter === "ADMIN"
+                          ? "bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 font-semibold shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Admin Sessions ({sessions.filter((s) => s.isAdmin || s.developer.role === "ADMIN").length})
+                    </button>
+                  </div>
+
+                  <div className="text-[11px] text-muted-foreground">
+                    Zero-Trust sentinel expires active sessions immediately without removing contractors from the project.
+                  </div>
+                </div>
+
                 {/* Sessions Table / List */}
                 <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
                   {isLoadingSessions ? (
@@ -2854,19 +2922,27 @@ function ProjectDetailContent() {
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       <span className="text-xs text-muted-foreground">Checking live session grants & sentinel logs...</span>
                     </div>
-                  ) : sessions.length === 0 ? (
+                  ) : filteredSessions.length === 0 ? (
                     <div className="p-10 text-center space-y-2">
                       <ShieldCheck className="h-8 w-8 text-primary/60 mx-auto" />
-                      <h4 className="font-display text-sm font-bold text-foreground">No Sessions Dispatched Yet</h4>
+                      <h4 className="font-display text-sm font-bold text-foreground">
+                        {sessionFilter === "ADMIN"
+                          ? "No Admin Sessions Recorded"
+                          : sessionFilter === "DEVELOPERS"
+                          ? "No Developer Sessions Recorded"
+                          : "No Sessions Dispatched Yet"}
+                      </h4>
                       <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                        When an assigned developer launches zero-trust WordPress access via the browser companion or proxy, their authenticated session, device, and browser telemetry will appear here.
+                        {sessionFilter === "ADMIN"
+                          ? "Whenever you launch zero-trust WordPress access as an administrator, your authenticated grant will be tracked here."
+                          : "When an assigned developer launches zero-trust WordPress access via the browser companion or proxy, their authenticated session, device, and browser telemetry will appear here."}
                       </p>
                     </div>
                   ) : (
                     <table className="w-full text-left text-xs">
                       <thead className="border-b border-border/80 bg-secondary/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                         <tr>
-                          <th className="px-4 py-3">Contractor</th>
+                          <th className="px-4 py-3">Identity & Role</th>
                           <th className="px-4 py-3">Device & Browser</th>
                           <th className="px-4 py-3">IP Address</th>
                           <th className="px-4 py-3">Session Status</th>
@@ -2875,11 +2951,23 @@ function ProjectDetailContent() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/60">
-                        {sessions.map((s) => {
+                        {filteredSessions.map((s) => {
                           const isLaptop = s.os === "Windows" || s.os === "macOS" || s.os === "Linux";
+                          const isSelf = s.isCurrentUser;
+                          const isAdm = s.isAdmin || s.developer.role === "ADMIN";
+
                           return (
-                            <tr key={s.id} className="hover:bg-secondary/30 transition-colors">
-                              {/* Contractor */}
+                            <tr
+                              key={s.id}
+                              className={`transition-colors ${
+                                isSelf
+                                  ? "bg-purple-500/[0.04] border-l-2 border-l-purple-500 hover:bg-purple-500/[0.08]"
+                                  : isAdm
+                                  ? "bg-indigo-500/[0.02] border-l-2 border-l-indigo-400 hover:bg-indigo-500/[0.06]"
+                                  : "hover:bg-secondary/30"
+                              }`}
+                            >
+                              {/* Identity */}
                               <td className="px-4 py-3.5">
                                 <div className="flex items-center gap-2.5">
                                   <UserAvatar
@@ -2890,11 +2978,26 @@ function ProjectDetailContent() {
                                     }}
                                     size="sm"
                                     withRing={true}
-                                    className="h-8 w-8 rounded-xl shrink-0"
+                                    className={`h-8 w-8 rounded-xl shrink-0 ${
+                                      isSelf ? "ring-purple-400/80" : ""
+                                    }`}
                                   />
                                   <div className="min-w-0">
-                                    <div className="font-bold text-foreground truncate">
-                                      {s.developer.name}
+                                    <div className="flex items-center gap-1.5 font-bold text-foreground truncate">
+                                      <span className="truncate">{s.developer.name}</span>
+                                      {isSelf ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 border border-purple-200 text-purple-800 dark:bg-purple-900/40 dark:border-purple-800 dark:text-purple-300 px-2 py-0.5 text-[10px] font-bold shrink-0">
+                                          You (Admin)
+                                        </span>
+                                      ) : isAdm ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-800 dark:bg-indigo-900/40 dark:border-indigo-800 dark:text-indigo-300 px-2 py-0.5 text-[10px] font-bold shrink-0">
+                                          Admin
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 border border-sky-200 text-sky-800 dark:bg-sky-900/40 dark:border-sky-800 dark:text-sky-300 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
+                                          Contractor
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="text-[11px] text-muted-foreground font-mono truncate">
                                       {s.developer.email}
@@ -2964,17 +3067,25 @@ function ProjectDetailContent() {
                                 {s.status === "ACTIVE" || s.status === "PENDING_DISPATCH" ? (
                                   <button
                                     type="button"
-                                    onClick={() => handleRevokeSession(s.id)}
+                                    onClick={() => handleRevokeSession(s.id, isSelf)}
                                     disabled={isRevokingSessionId === s.id}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700 transition-all cursor-pointer shadow-2xs"
-                                    title="Revoke and terminate this login grant"
+                                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs border ${
+                                      isSelf
+                                        ? "border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
+                                        : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-800/40 dark:bg-rose-950/30 dark:text-rose-400"
+                                    }`}
+                                    title={
+                                      isSelf
+                                        ? "Revoke and terminate your own active WordPress session"
+                                        : "Revoke and terminate this developer's WordPress session immediately (project assignment remains active)"
+                                    }
                                   >
                                     {isRevokingSessionId === s.id ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
                                       <Power className="h-3 w-3" />
                                     )}
-                                    <span>Revoke</span>
+                                    <span>{isSelf ? "Revoke My Session" : "Revoke Session"}</span>
                                   </button>
                                 ) : (
                                   <span className="text-[11px] text-muted-foreground italic">
@@ -2988,6 +3099,14 @@ function ProjectDetailContent() {
                       </tbody>
                     </table>
                   )}
+
+                  {/* Informational Policy Banner */}
+                  <div className="border-t border-border/80 bg-secondary/30 px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>
+                      <strong>Zero-Trust Sentinel Policy:</strong> Revoking an active session immediately terminates that user&apos;s WordPress login access and purges browser cookies. Team project assignments and task allocations remain active.
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

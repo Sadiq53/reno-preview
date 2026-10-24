@@ -89,6 +89,23 @@ export async function GET(req: Request) {
         );
       }
 
+      // Check if there is an active (un-revoked, un-purged) LoginGrant for this assignment
+      const activeGrant = await prisma.loginGrant.findFirst({
+        where: {
+          assignmentId: assignment.id,
+          expiresAt: { not: new Date(0) },
+          sessionDataEncrypted: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!activeGrant) {
+        return NextResponse.json(
+          { active: false, reason: "session_revoked" },
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
       return NextResponse.json(
         {
           active: true,
@@ -128,6 +145,21 @@ export async function GET(req: Request) {
       if (!matchingProject || matchingProject.assignments.length === 0) {
         return NextResponse.json(
           { active: false, reason: "no_active_assignment_for_domain" },
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
+      const activeProjectGrant = await prisma.loginGrant.findFirst({
+        where: {
+          assignment: { projectId: matchingProject.id },
+          expiresAt: { not: new Date(0) },
+          sessionDataEncrypted: { not: null },
+        },
+      });
+
+      if (!activeProjectGrant) {
+        return NextResponse.json(
+          { active: false, reason: "session_revoked" },
           { status: 200, headers: corsHeaders }
         );
       }

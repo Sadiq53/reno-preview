@@ -152,7 +152,10 @@ export async function GET(req: Request, { params }: RouteParams) {
           name: grant.assignment.user.name,
           email: grant.assignment.user.email,
           avatarUrl: grant.assignment.user.avatarUrl,
+          role: grant.assignment.user.role,
         },
+        isCurrentUser: grant.assignment.user.id === session.user.id,
+        isAdmin: grant.assignment.user.role === "ADMIN",
         wpRoleTemplate: grant.assignment.wpRoleTemplate,
         status,
         device,
@@ -168,17 +171,27 @@ export async function GET(req: Request, { params }: RouteParams) {
     });
 
     // Aggregate statistics
+    const developerSessions = formattedSessions.filter((s) => s.developer.role === "DEVELOPER");
+    const adminSessions = formattedSessions.filter((s) => s.developer.role === "ADMIN");
+
     const stats = {
       totalGrants: formattedSessions.length,
       activeSessions: formattedSessions.filter((s) => s.status === "ACTIVE").length,
       pendingDispatches: formattedSessions.filter((s) => s.status === "PENDING_DISPATCH").length,
-      uniqueDevelopers: Array.from(new Set(formattedSessions.map((s) => s.developer.id))).length,
+      uniqueDevelopers: Array.from(new Set(developerSessions.map((s) => s.developer.id))).length,
+      adminSessionsCount: adminSessions.length,
       revokedCount: formattedSessions.filter((s) => s.status === "REVOKED").length,
     };
 
     return NextResponse.json({
       sessions: formattedSessions,
       stats,
+      currentUser: {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        role: session.user.role,
+      },
       project: { id: project.id, name: project.name },
     });
   } catch (error: any) {
@@ -207,7 +220,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
     const userAgent = req.headers.get("user-agent") || "RenoAdmin/1.0";
 
-    // Scenario 1: Purge ALL active sessions for this project
+    // Scenario 1: Purge ALL active WP sessions for this project (without unassigning developers)
     if (purgeAll) {
       const project = await prisma.project.findUnique({
         where: { id: projectId },
@@ -220,13 +233,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       });
       const assignmentIds = assignments.map((a) => a.id);
 
-      // Mark all assignments as revoked
-      await prisma.assignment.updateMany({
-        where: { projectId, revokedAt: null },
-        data: { revokedAt: now },
-      });
-
-      // Expire and wipe all login grants
+      // Expire and wipe all login grants immediately
       const result = await prisma.loginGrant.updateMany({
         where: {
           assignmentId: { in: assignmentIds },
@@ -261,13 +268,13 @@ export async function DELETE(req: Request, { params }: RouteParams) {
 
       return NextResponse.json({
         success: true,
-        message: `Successfully purged ${result.count} session(s) across all developers for this project.`,
+        message: `Successfully purged ${result.count} WordPress session(s) across all accounts for this project.`,
         purgedCount: result.count,
         domain,
       });
     }
 
-    // Scenario 2: Revoke single session grant
+    // Scenario 2: Revoke single session grant (expire WP session immediately without kicking from project)
     if (grantId) {
       const grant = await prisma.loginGrant.findUnique({
         where: { id: grantId },
@@ -291,12 +298,6 @@ export async function DELETE(req: Request, { params }: RouteParams) {
           sessionDataIv: null,
           sessionDataAuthTag: null,
         },
-      });
-
-      // Mark assignment as revoked so extension heartbeat immediately detects and purges cookies
-      await prisma.assignment.update({
-        where: { id: grant.assignmentId },
-        data: { revokedAt: now },
       });
 
       let domain = "";
