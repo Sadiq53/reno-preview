@@ -21,25 +21,32 @@ try {
   messaging.onBackgroundMessage((payload) => {
     console.log("[firebase-messaging-sw.js] Received background message: ", payload);
 
-    // If Firebase SDK already displayed the notification via payload.notification, avoid race-condition duplicate
-    if (payload.notification && payload.notification.title) {
-      return;
-    }
+    const title =
+      payload.notification?.title ||
+      payload.data?.title ||
+      "Crewvia Vanguard Alert";
 
-    const title = payload.data?.title || payload.notification?.title || "Crewvia Vanguard Alert";
+    const body =
+      payload.notification?.body ||
+      payload.data?.body ||
+      payload.data?.message ||
+      "New project activity recorded.";
+
+    const targetUrl =
+      payload.data?.url ||
+      payload.data?.link ||
+      payload.fcmOptions?.link ||
+      "/";
+
     const options = {
-      body:
-        payload.data?.body ||
-        payload.data?.message ||
-        payload.notification?.body ||
-        "New project activity recorded.",
+      body,
       icon: payload.notification?.icon || payload.data?.icon || "/favicon.ico",
       badge: payload.notification?.badge || payload.data?.badge || "/favicon.ico",
       tag: payload.data?.tag || `vanguard-${Date.now()}`,
       requireInteraction: true,
       renotify: true,
       data: {
-        url: payload.data?.url || payload.data?.link || "/",
+        url: targetUrl,
       },
     };
 

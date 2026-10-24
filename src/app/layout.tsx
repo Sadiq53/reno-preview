@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NotificationProvider } from "@/components/notifications/NotificationContext";
 import InAppToastContainer from "@/components/notifications/InAppToastContainer";
+import DesktopPushBanner from "@/components/notifications/DesktopPushBanner";
 import ExtensionUpdateBanner from "@/components/extension/ExtensionUpdateBanner";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default function RootLayout({
         <AuthProvider>
           <NotificationProvider>
             <ExtensionUpdateBanner />
+            <DesktopPushBanner />
             {children}
             <InAppToastContainer />
           </NotificationProvider>

@@ -40,6 +40,10 @@ interface NotificationContextType {
   toggleSound: () => void;
   playChime: () => void;
   fetchNotifications: () => Promise<void>;
+  pushPermission: NotificationPermission | "unsupported";
+  requestPushPermission: () => Promise<boolean>;
+  showPushPrompt: boolean;
+  dismissPushPrompt: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -51,12 +55,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeToasts, setActiveToasts] = useState<ActiveToast[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const hasTriggeredWelcomeRef = useRef(false);
 
-  // Initialize sound preference from localStorage
+  // Initialize sound preference & push permission from localStorage/window
   useEffect(() => {
     if (typeof window !== "undefined") {
+      if ("Notification" in window) {
+        setPushPermission(Notification.permission);
+      } else {
+        setPushPermission("unsupported");
+      }
       const stored =
         localStorage.getItem("vanguard_notifications_sound_enabled") ??
         localStorage.getItem("reno_notifications_sound_enabled");
@@ -162,7 +172,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setActiveToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // Fetch initial notifications list & unread count
+  // Fetch notifications list & unread count (silent on page reload - no auto-toast/chime)
   const fetchNotifications = useCallback(async () => {
     if (!session?.user) return;
     try {
@@ -174,47 +184,62 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         setNotifications(list);
         setUnreadCount(count);
-
-        // Check if there are genuinely fresh unread notifications that haven't been shown in this session
-        if (!hasTriggeredWelcomeRef.current) {
-          hasTriggeredWelcomeRef.current = true;
-
-          if (typeof window !== "undefined") {
-            try {
-              const raw =
-                sessionStorage.getItem("vanguard_shown_toast_ids") ||
-                sessionStorage.getItem("reno_shown_toast_ids");
-              const shownIds: string[] = raw ? JSON.parse(raw) : [];
-
-              // ONLY toast unread notifications that have never been shown in this browser session
-              const freshUnread = list.filter((n) => !n.isRead && !shownIds.includes(n.id));
-
-              if (freshUnread.length > 0) {
-                const targetToShow = freshUnread[0];
-                setTimeout(() => {
-                  addToast(targetToShow, {
-                    autoDismissMs: 9000,
-                    unreadTotal: count,
-                    isInitialWelcome: false,
-                  });
-                  playChime();
-                }, 600);
-              }
-            } catch {}
-          }
-        }
       }
     } catch (err) {
-      console.warn("[Notifications] Failed to load initial notifications:", err);
+      console.warn("[Notifications] Failed to load notifications:", err);
     }
-  }, [session, addToast, playChime]);
+  }, [session]);
+
+  // Request Desktop Web Push notification permission and register FCM token
+  const requestPushPermission = useCallback(async (): Promise<boolean> => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return false;
+    }
+    try {
+      const token = await requestFcmToken();
+      if (token) {
+        setPushPermission("granted");
+        setShowPushPrompt(false);
+        return true;
+      } else {
+        const perm = Notification.permission;
+        setPushPermission(perm);
+        if (perm === "denied") {
+          setShowPushPrompt(false);
+        }
+        return perm === "granted";
+      }
+    } catch (err) {
+      console.warn("[Push Permission Error]:", err);
+      return false;
+    }
+  }, []);
+
+  const dismissPushPrompt = useCallback(() => {
+    setShowPushPrompt(false);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("vanguard_push_prompt_dismissed", "true");
+    }
+  }, []);
 
   useEffect(() => {
     if (status === "authenticated") {
       fetchNotifications();
-      // Ensure FCM background Web Push token is synchronized if browser permission is already granted
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        requestFcmToken().catch(() => {});
+
+      // Ensure FCM background Web Push token is synchronized
+      if (typeof window !== "undefined" && "Notification" in window) {
+        const perm = Notification.permission;
+        setPushPermission(perm);
+
+        if (perm === "granted") {
+          requestFcmToken().catch(() => {});
+        } else if (perm === "default") {
+          const dismissed = sessionStorage.getItem("vanguard_push_prompt_dismissed");
+          if (!dismissed) {
+            const timer = setTimeout(() => setShowPushPrompt(true), 1200);
+            return () => clearTimeout(timer);
+          }
+        }
       }
     }
   }, [status, fetchNotifications]);
@@ -366,6 +391,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         toggleSound,
         playChime,
         fetchNotifications,
+        pushPermission,
+        requestPushPermission,
+        showPushPrompt,
+        dismissPushPrompt,
       }}
     >
       {children}

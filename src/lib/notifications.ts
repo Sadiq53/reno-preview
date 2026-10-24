@@ -83,8 +83,41 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
   try {
     const idSet = new Set<string>();
 
+    if (projectId) {
+      // 1. All Active Admins
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN", status: "ACTIVE" },
+        select: { id: true },
+      });
+      admins.forEach((a) => idSet.add(a.id));
+
+      // 2. All Active Developers assigned to this project
+      const [projectAssignments, taskAssignees] = await Promise.all([
+        prisma.assignment.findMany({
+          where: {
+            projectId,
+            user: { status: "ACTIVE" },
+          },
+          select: { userId: true },
+        }),
+        prisma.comment.findMany({
+          where: {
+            projectId,
+            assigneeUserId: { not: null },
+            assigneeUser: { status: "ACTIVE" },
+          },
+          select: { assigneeUserId: true },
+        }),
+      ]);
+
+      projectAssignments.forEach((a) => idSet.add(a.userId));
+      taskAssignees.forEach((t) => {
+        if (t.assigneeUserId) idSet.add(t.assigneeUserId);
+      });
+    }
+
     if (userId) {
-      // Validate target user is ACTIVE before adding
+      // Direct user target (e.g. specifically assigned developer or test notification)
       const target = await prisma.user.findFirst({
         where: { id: userId, status: "ACTIVE" },
         select: { id: true },
@@ -93,37 +126,15 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
         idSet.add(target.id);
       }
 
-      if (includeAdmins) {
+      if (includeAdmins && !projectId) {
         const admins = await prisma.user.findMany({
           where: { role: "ADMIN", status: "ACTIVE" },
           select: { id: true },
         });
         admins.forEach((a) => idSet.add(a.id));
       }
-    } else if (projectId) {
-      // Strict Project Isolation:
-      // Admins + Developers ACTIVELY assigned to this EXACT project ONLY.
-      // Developers assigned to Project B or whose assignments expired/revoked are strictly excluded.
-      const [admins, assignments] = await Promise.all([
-        prisma.user.findMany({
-          where: { role: "ADMIN", status: "ACTIVE" },
-          select: { id: true },
-        }),
-        prisma.assignment.findMany({
-          where: {
-            projectId,
-            revokedAt: null,
-            expiresAt: { gt: new Date() },
-            user: { status: "ACTIVE" },
-          },
-          select: { userId: true },
-        }),
-      ]);
-
-      admins.forEach((a) => idSet.add(a.id));
-      assignments.forEach((a) => idSet.add(a.userId));
-    } else {
-      // Global broadcast to active admins only
+    } else if (!projectId) {
+      // Global broadcast to active admins only when neither projectId nor userId is provided
       const admins = await prisma.user.findMany({
         where: { role: "ADMIN", status: "ACTIVE" },
         select: { id: true },

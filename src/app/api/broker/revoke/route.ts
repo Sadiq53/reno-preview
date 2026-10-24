@@ -9,6 +9,7 @@ interface RevokeRequestBody {
   assignmentId?: string;
   projectId?: string;
   domain?: string;
+  revokeAssignment?: boolean;
 }
 
 export async function POST(req: Request) {
@@ -77,11 +78,13 @@ export async function POST(req: Request) {
 
         const { domain } = normalizeWpLoginUrl(project.targetUrl || "http://localhost");
 
-        // Revoke all active assignments for this project
-        await prisma.assignment.updateMany({
-          where: { projectId: project.id, revokedAt: null },
-          data: { revokedAt: now },
-        });
+        // Only revoke project assignment if explicitly requested (otherwise only invalidate WP login grants)
+        if (body.revokeAssignment) {
+          await prisma.assignment.updateMany({
+            where: { projectId: project.id, revokedAt: null },
+            data: { revokedAt: now },
+          });
+        }
 
         // Expire and wipe all login grants for this project's assignments
         const assignments = await prisma.assignment.findMany({
@@ -118,7 +121,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: `All active assignments and sessions for project ${project.name} revoked.`,
+          message: `All active sessions for project ${project.name} revoked.`,
           domain,
           targetUrl: project.targetUrl,
           revokedAt: now.toISOString(),
@@ -145,11 +148,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // 1. Mark target assignment as revoked
-    const updated = await prisma.assignment.update({
-      where: { id: targetAssignment.id },
-      data: { revokedAt: now },
-    });
+    // 1. Mark target assignment as revoked only if explicitly requested
+    if (body.revokeAssignment) {
+      await prisma.assignment.update({
+        where: { id: targetAssignment.id },
+        data: { revokedAt: now },
+      });
+    }
 
     // 2. Invalidate all Login Grants for this assignment and wipe session data
     await prisma.loginGrant.updateMany({
