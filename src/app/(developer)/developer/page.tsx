@@ -30,11 +30,13 @@ import {
   Search,
   Filter,
   ArrowUpRight,
-  RotateCcw
+  RotateCcw,
+  Bell
 } from "lucide-react";
 import DeveloperHeader from "@/components/layout/DeveloperHeader";
 import { LaunchWpButton } from "@/components/dashboard/LaunchWpButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useNotifications } from "@/components/notifications/NotificationContext";
 
 // --- INTERFACES ---
 interface PageItem {
@@ -129,6 +131,37 @@ export default function DeveloperPortalPage() {
   // Table filter states
   const [taskStatusFilter, setTaskStatusFilter] = useState<"ALL" | "PENDING" | "IN_PROGRESS" | "RESOLVED">("ALL");
   const [taskTableSearch, setTaskTableSearch] = useState("");
+
+  const { pushPermission, requestPushPermission } = useNotifications();
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
+  const [testPushStatus, setTestPushStatus] = useState<"idle" | "sending" | "sent">("idle");
+
+  const handleEnablePushAlerts = async () => {
+    setIsEnablingPush(true);
+    try {
+      await requestPushPermission();
+    } finally {
+      setIsEnablingPush(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setTestPushStatus("sending");
+    try {
+      await fetch("/api/notifications/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Push Notifications Verified",
+          message: "Real-time alerts for tasks and comments are fully active on your workspace.",
+        }),
+      });
+      setTestPushStatus("sent");
+      setTimeout(() => setTestPushStatus("idle"), 3000);
+    } catch {
+      setTestPushStatus("idle");
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -271,7 +304,7 @@ export default function DeveloperPortalPage() {
         {/* Workspace Title & Quick Actions Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Developer Sandbox
               </span>
@@ -280,6 +313,18 @@ export default function DeveloperPortalPage() {
                 <ShieldCheck className="h-3 w-3 text-emerald-600" />
                 Zero-Trust Active
               </span>
+              <span className="text-muted-foreground/40">&bull;</span>
+              {pushPermission === "granted" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 px-2 py-0.5 text-[11px] font-semibold">
+                  <Bell className="h-3 w-3 text-sky-600" />
+                  Push Alerts Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 text-[11px] font-semibold">
+                  <Bell className="h-3 w-3 text-amber-600" />
+                  Push Alerts Disabled
+                </span>
+              )}
             </div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
               Workspace Dashboard
@@ -310,6 +355,71 @@ export default function DeveloperPortalPage() {
             </Link>
           </div>
         </div>
+
+        {/* Desktop Web Push Activation Banner for Developers */}
+        {pushPermission !== "granted" && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                <Bell className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-foreground">
+                    Enable Desktop Background Notifications
+                  </h3>
+                  <span className="rounded bg-sky-100 text-sky-800 border border-sky-300 px-1.5 py-0.2 text-[9px] font-semibold">
+                    Instant Alerts
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  Receive background alerts when tasks or comments are created by the admin or client on your assigned projects.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleEnablePushAlerts}
+              disabled={isEnablingPush || pushPermission === "denied"}
+              className="inline-flex items-center justify-center gap-1.5 h-8 px-3.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all cursor-pointer shadow-xs shrink-0 disabled:opacity-50"
+            >
+              {isEnablingPush ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Enabling...</span>
+                </>
+              ) : pushPermission === "denied" ? (
+                <span>Notifications Blocked in Browser</span>
+              ) : (
+                <>
+                  <Bell className="h-3.5 w-3.5" />
+                  <span>Enable Push Alerts</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {pushPermission === "granted" && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-2.5 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Desktop background alerts active for assigned projects.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleSendTestPush}
+              disabled={testPushStatus !== "idle"}
+              className="text-[11px] font-semibold text-primary hover:underline cursor-pointer disabled:opacity-50"
+            >
+              {testPushStatus === "sending"
+                ? "Sending test..."
+                : testPushStatus === "sent"
+                ? "✓ Alert sent!"
+                : "Send Test Alert"}
+            </button>
+          </div>
+        )}
 
         {/* Error notification if any */}
         {errorMessage && (

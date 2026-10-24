@@ -993,19 +993,20 @@ function ProjectDetailContent() {
   };
 
   const handleTaskCreated = (newTask: any) => {
+    const taskData = newTask?.task || newTask;
     const formattedTask: CommentTaskItem = {
-      id: newTask.id,
+      id: taskData.id,
       projectId,
-      title: newTask.title,
-      content: newTask.content,
-      notes: newTask.notes,
-      status: newTask.status || "PENDING",
-      priority: newTask.priority || "MEDIUM",
-      pageId: newTask.pageId,
-      page: newTask.page || pages.find((p) => p.id === newTask.pageId) || null,
-      authorUser: newTask.authorUser || { id: "admin", name: "Agency Owner", role: "ADMIN" },
-      assigneeUser: newTask.assigneeUser || null,
-      createdAt: newTask.createdAt || new Date().toISOString(),
+      title: taskData.title,
+      content: taskData.content,
+      notes: taskData.notes,
+      status: taskData.status || "PENDING",
+      priority: taskData.priority || "MEDIUM",
+      pageId: taskData.pageId,
+      page: taskData.page || pages.find((p) => p.id === taskData.pageId) || null,
+      authorUser: taskData.authorUser || { id: "admin", name: "Agency Owner", role: "ADMIN" },
+      assigneeUser: taskData.assigneeUser || null,
+      createdAt: taskData.createdAt || new Date().toISOString(),
       replies: [],
     };
     setComments((prev) => [formattedTask, ...prev]);

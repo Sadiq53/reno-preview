@@ -261,6 +261,14 @@ export async function sendFcmNotification(params: {
         : `${cleanAppUrl}${link.startsWith("/") ? "" : "/"}${link}`
       : cleanAppUrl;
 
+    const deterministicTag = (data as any)?.taskId
+      ? `task-${(data as any).taskId}`
+      : (data as any)?.commentId
+      ? `comment-${(data as any).commentId}`
+      : (data as any)?.projectId
+      ? `project-${(data as any).projectId}`
+      : `vanguard-${(data as any)?.type || "alert"}`;
+
     const messagePayload: MulticastMessage = {
       tokens,
       notification: {
@@ -278,7 +286,7 @@ export async function sendFcmNotification(params: {
           icon: iconUrl,
           badge: iconUrl,
           requireInteraction: true,
-          tag: `vanguard-${Date.now()}`,
+          tag: deterministicTag,
         },
         fcmOptions: {
           link: fullLink,
@@ -290,6 +298,7 @@ export async function sendFcmNotification(params: {
         body,
         link: fullLink,
         url: fullLink,
+        tag: deterministicTag,
         timestamp: new Date().toISOString(),
       },
     };

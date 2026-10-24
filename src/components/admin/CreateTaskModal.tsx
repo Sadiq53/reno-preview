@@ -72,6 +72,14 @@ export default function CreateTaskModal({
     setErrorMessage("");
 
     try {
+      let parsedDueDate: string | null = null;
+      if (dueDate && dueDate.trim()) {
+        const d = new Date(dueDate);
+        if (!isNaN(d.getTime())) {
+          parsedDueDate = d.toISOString();
+        }
+      }
+
       const res = await fetch(`/api/projects/${projectId}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,9 +87,9 @@ export default function CreateTaskModal({
           title: title.trim(),
           content: content.trim() || title.trim(),
           priority,
-          pageId: pageId || null,
-          assigneeUserId: assigneeUserId || null,
-          dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+          pageId: pageId && pageId.trim() ? pageId.trim() : null,
+          assigneeUserId: assigneeUserId && assigneeUserId.trim() ? assigneeUserId.trim() : null,
+          dueDate: parsedDueDate,
           notes: notes.trim() || null,
         }),
       });
@@ -89,10 +97,15 @@ export default function CreateTaskModal({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create task");
+        const errorDetails = data.details
+          ? Object.entries(data.details)
+              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+              .join("; ")
+          : "";
+        throw new Error(errorDetails ? `${data.error || "Validation error"}: ${errorDetails}` : (data.error || "Failed to create task"));
       }
 
-      onTaskCreated(data);
+      onTaskCreated(data.task || data);
       // Reset form
       setTitle("");
       setContent("");

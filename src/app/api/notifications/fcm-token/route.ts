@@ -45,6 +45,23 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Prune stale duplicate tokens for this user (keep 2 most recent)
+    try {
+      const userTokens = await prisma.fcmToken.findMany({
+        where: { userId: session.user.id },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      if (userTokens.length > 2) {
+        const staleTokenIds = userTokens.slice(2).map((t) => t.id);
+        await prisma.fcmToken.deleteMany({
+          where: { id: { in: staleTokenIds } },
+        });
+      }
+    } catch (pruneErr) {
+      console.warn("[FCM_TOKEN_PRUNE_WARN]:", pruneErr);
+    }
+
     return NextResponse.json({ success: true, id: fcmRecord.id });
   } catch (error: any) {
     console.error("[FCM_TOKEN_REGISTER_ERROR]:", error);

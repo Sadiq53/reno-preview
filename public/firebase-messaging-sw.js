@@ -21,13 +21,19 @@ try {
   messaging.onBackgroundMessage((payload) => {
     console.log("[firebase-messaging-sw.js] Received background message: ", payload);
 
+    // If the message already includes a notification payload, Firebase SDK / browser displays it automatically.
+    // Calling showNotification manually here causes duplicate notifications.
+    if (payload.notification) {
+      console.log("[firebase-messaging-sw.js] Notification payload handled automatically by Firebase Web SDK");
+      return;
+    }
+
+    // Only display manual notification for data-only messages
     const title =
-      payload.notification?.title ||
       payload.data?.title ||
       "Crewvia Vanguard Alert";
 
     const body =
-      payload.notification?.body ||
       payload.data?.body ||
       payload.data?.message ||
       "New project activity recorded.";
@@ -38,13 +44,19 @@ try {
       payload.fcmOptions?.link ||
       "/";
 
+    const tag =
+      payload.data?.tag ||
+      (payload.data?.taskId ? `task-${payload.data.taskId}` : null) ||
+      (payload.data?.commentId ? `comment-${payload.data.commentId}` : null) ||
+      "vanguard-alert";
+
     const options = {
       body,
-      icon: payload.notification?.icon || payload.data?.icon || "/favicon.ico",
-      badge: payload.notification?.badge || payload.data?.badge || "/favicon.ico",
-      tag: payload.data?.tag || `vanguard-${Date.now()}`,
+      icon: payload.data?.icon || "/favicon.ico",
+      badge: payload.data?.badge || "/favicon.ico",
+      tag,
       requireInteraction: true,
-      renotify: true,
+      renotify: false,
       data: {
         url: targetUrl,
       },

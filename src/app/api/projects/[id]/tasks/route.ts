@@ -12,12 +12,19 @@ interface RouteParams {
 
 const createTaskSchema = z.object({
   title: z.string().trim().min(1, "Task title is required"),
-  content: z.string().trim().default(""),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
-  dueDate: z.string().nullable().optional(),
-  assigneeUserId: z.string().nullable().optional(),
-  pageId: z.string().nullable().optional(),
-  notes: z.string().trim().optional(),
+  content: z.string().trim().nullable().optional().default(""),
+  priority: z
+    .union([
+      z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+      z.string().transform((s) => s.toUpperCase()),
+    ])
+    .pipe(z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]))
+    .optional()
+    .default("MEDIUM"),
+  dueDate: z.string().trim().nullable().optional(),
+  assigneeUserId: z.string().trim().nullable().optional(),
+  pageId: z.string().trim().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
 });
 
 /**
@@ -198,17 +205,60 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Parse dueDate robustly
+    let parsedDueDate: Date | null = null;
+    if (dueDate && typeof dueDate === "string" && dueDate.trim().length > 0) {
+      const d = new Date(dueDate);
+      if (!isNaN(d.getTime())) {
+        parsedDueDate = d;
+      }
+    }
+
+    // Sanitize assigneeUserId to ensure foreign key validity
+    let sanitizedAssigneeId: string | null = null;
+    if (
+      assigneeUserId &&
+      typeof assigneeUserId === "string" &&
+      assigneeUserId.trim().length > 0 &&
+      assigneeUserId !== "unassigned"
+    ) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: assigneeUserId.trim() },
+        select: { id: true },
+      });
+      if (userExists) {
+        sanitizedAssigneeId = userExists.id;
+      }
+    }
+
+    // Sanitize pageId to ensure foreign key validity
+    let sanitizedPageId: string | null = null;
+    if (
+      pageId &&
+      typeof pageId === "string" &&
+      pageId.trim().length > 0 &&
+      pageId !== "general"
+    ) {
+      const pageExists = await prisma.projectPage.findFirst({
+        where: { id: pageId.trim(), projectId },
+        select: { id: true },
+      });
+      if (pageExists) {
+        sanitizedPageId = pageExists.id;
+      }
+    }
+
     const task = await prisma.comment.create({
       data: {
         projectId,
-        pageId: pageId || null,
+        pageId: sanitizedPageId,
         authorUserId: session.user.id,
         title,
         content: content || title,
         notes: notes || null,
-        priority,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        assigneeUserId: assigneeUserId || null,
+        priority: priority as any,
+        dueDate: parsedDueDate,
+        assigneeUserId: sanitizedAssigneeId,
         status: "PENDING",
         posX: null,
         posY: null,
@@ -249,11 +299,27 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Realtime notification dispatch
     const authorName = session.user.name || "Team Member";
-    if (task.assigneeUserId) {
+    const taskSnippet = (task.title || task.content).slice(0, 50);
+
+    if (task.priority === "URGENT") {
+      await dispatchNotification({
+        type: "PRIORITY_URGENT",
+        title: `🚨 URGENT Task: ${task.title || "Urgent Task"}`,
+        message: task.assigneeUserId
+          ? `${authorName} assigned you an URGENT task: "${taskSnippet}"`
+          : `${authorName} created an URGENT task: "${taskSnippet}"`,
+        link: `/developer/tasks?projectId=${projectId}`,
+        projectId,
+        userId: task.assigneeUserId || undefined,
+        includeAdmins: true,
+        excludeUserId: session.user.id,
+        metadata: { taskId: task.id, priority: "URGENT" },
+      });
+    } else if (task.assigneeUserId) {
       await dispatchNotification({
         type: "TASK_ASSIGNED",
         title: `Task Assigned: ${task.title || "New Task"}`,
-        message: `${authorName} assigned you a task: "${(task.title || task.content).slice(0, 50)}"`,
+        message: `${authorName} assigned you a task: "${taskSnippet}"`,
         link: `/developer/tasks?projectId=${projectId}`,
         projectId,
         userId: task.assigneeUserId,
@@ -265,7 +331,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       await dispatchNotification({
         type: "TASK_ASSIGNED",
         title: `New Task: ${task.title || "Unassigned Task"}`,
-        message: `${authorName} created a new task: "${(task.title || task.content).slice(0, 50)}"`,
+        message: `${authorName} created a new task: "${taskSnippet}"`,
         link: `/developer/tasks?projectId=${projectId}`,
         projectId,
         excludeUserId: session.user.id,
@@ -273,19 +339,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       });
     }
 
-    if (task.priority === "URGENT") {
-      await dispatchNotification({
-        type: "PRIORITY_URGENT",
-        title: `URGENT Task: ${task.title}`,
-        message: `${authorName} marked task "${task.title}" as URGENT priority.`,
-        link: `/developer/tasks?projectId=${projectId}`,
-        projectId,
-        excludeUserId: session.user.id,
-        metadata: { taskId: task.id, priority: "URGENT" },
-      });
-    }
-
-    return NextResponse.json({ task }, { status: 201 });
+    return NextResponse.json({ success: true, task, ...task }, { status: 201 });
   } catch (error: any) {
     console.error("[PROJECT_TASKS_POST_ERROR]", error);
     return NextResponse.json(

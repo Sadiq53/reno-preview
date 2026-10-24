@@ -83,7 +83,26 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
   try {
     const idSet = new Set<string>();
 
-    if (projectId) {
+    if (userId) {
+      // Direct user target (e.g. specifically assigned developer or targeted alert)
+      const target = await prisma.user.findFirst({
+        where: { id: userId, status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (target) {
+        idSet.add(target.id);
+      }
+
+      // If requested or if no project scope, also notify active admins
+      if (includeAdmins || !projectId) {
+        const admins = await prisma.user.findMany({
+          where: { role: "ADMIN", status: "ACTIVE" },
+          select: { id: true },
+        });
+        admins.forEach((a) => idSet.add(a.id));
+      }
+    } else if (projectId) {
+      // General project broadcast (comments, unassigned tasks, project updates)
       // 1. All Active Admins
       const admins = await prisma.user.findMany({
         where: { role: "ADMIN", status: "ACTIVE" },
@@ -91,12 +110,14 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
       });
       admins.forEach((a) => idSet.add(a.id));
 
-      // 2. All Active Developers assigned to this project
+      // 2. All Active Developers assigned to this project with valid, unrevoked access
       const [projectAssignments, taskAssignees] = await Promise.all([
         prisma.assignment.findMany({
           where: {
             projectId,
             user: { status: "ACTIVE" },
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
           },
           select: { userId: true },
         }),
@@ -114,26 +135,7 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
       taskAssignees.forEach((t) => {
         if (t.assigneeUserId) idSet.add(t.assigneeUserId);
       });
-    }
-
-    if (userId) {
-      // Direct user target (e.g. specifically assigned developer or test notification)
-      const target = await prisma.user.findFirst({
-        where: { id: userId, status: "ACTIVE" },
-        select: { id: true },
-      });
-      if (target) {
-        idSet.add(target.id);
-      }
-
-      if (includeAdmins && !projectId) {
-        const admins = await prisma.user.findMany({
-          where: { role: "ADMIN", status: "ACTIVE" },
-          select: { id: true },
-        });
-        admins.forEach((a) => idSet.add(a.id));
-      }
-    } else if (!projectId) {
+    } else {
       // Global broadcast to active admins only when neither projectId nor userId is provided
       const admins = await prisma.user.findMany({
         where: { role: "ADMIN", status: "ACTIVE" },
@@ -235,13 +237,21 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
           .filter((t) => activeRecipients.find((r) => r.id === t.userId)?.role === "DEVELOPER")
           .map((t) => t.token);
 
+        const fcmData = {
+          type,
+          projectId: projectId || "",
+          link: link || "/",
+          ...(metadata?.taskId ? { taskId: String(metadata.taskId) } : {}),
+          ...(metadata?.commentId ? { commentId: String(metadata.commentId) } : {}),
+        };
+
         if (adminTokens.length > 0) {
           await sendFcmNotification({
             tokens: adminTokens,
             title,
             body: message,
             link: link || "/",
-            data: { type, projectId: projectId || "", link: link || "/" },
+            data: fcmData,
           });
         }
 
@@ -258,7 +268,7 @@ export async function dispatchNotification(params: CreateNotificationParams): Pr
             title: devTitle,
             body: devBody,
             link: link || "/",
-            data: { type, projectId: projectId || "", link: link || "/" },
+            data: fcmData,
           });
         }
       }
