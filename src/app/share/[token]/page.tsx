@@ -626,10 +626,10 @@ function SharedPreviewPageContent() {
         showNotifications={false}
       />
 
-      {/* Main Workspace Layout: Canvas (flex-1) + Smooth In-Flow Comment Sidebar */}
-      <div className="relative flex flex-1 overflow-hidden h-[calc(100vh-58px)]">
+      {/* Main Workspace Layout: Canvas (flex-1 min-w-0) + Smooth In-Flow Comment Sidebar */}
+      <div className="relative flex flex-1 w-full min-w-0 overflow-hidden h-[calc(100vh-58px)]">
         {/* Main Preview Area */}
-        <main className="relative flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out bg-slate-100/60 dot-grid">
+        <main className="relative flex-1 min-w-0 h-full overflow-hidden transition-all duration-300 ease-in-out bg-slate-100/60 dot-grid">
           {/* Notification Toast */}
           {notification && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900 shadow-lg animate-in fade-in zoom-in-95">

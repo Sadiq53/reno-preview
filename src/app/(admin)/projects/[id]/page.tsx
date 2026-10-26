@@ -471,6 +471,17 @@ function ProjectDetailContent() {
     }
   }, [projectId, fetchAllProjectData, fetchSessions]);
 
+  // Live Auto-Refresh for Developer Presence & WP Sessions
+  useEffect(() => {
+    if (!projectId) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchSessions();
+      }
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [projectId, fetchSessions]);
+
   // Session Sentinel Handlers
   const handleRevokeSession = async (grantId: string, isSelf = false) => {
     setIsRevokingSessionId(grantId);
@@ -1155,10 +1166,10 @@ function ProjectDetailContent() {
       </div>
 
       {/* Primary Project Tabs Navigation */}
-      <div className="border-b border-border/80 bg-card/60 rounded-xl p-1 flex items-center gap-1 shadow-xs flex-wrap">
+      <div className="border-b border-border/80 bg-card/60 rounded-xl p-1 flex items-center gap-1 shadow-xs overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap">
         <button
           onClick={() => handleTabChange("progress")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === "progress"
               ? "bg-primary text-white shadow-sm"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -1170,7 +1181,7 @@ function ProjectDetailContent() {
 
         <button
           onClick={() => handleTabChange("dev-progress")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === "dev-progress"
               ? "bg-primary text-white shadow-sm"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -1191,7 +1202,7 @@ function ProjectDetailContent() {
 
         <button
           onClick={() => handleTabChange("tasks")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === "tasks"
               ? "bg-primary text-white shadow-sm"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -1210,7 +1221,7 @@ function ProjectDetailContent() {
 
         <button
           onClick={() => handleTabChange("settings")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === "settings"
               ? "bg-primary text-white shadow-sm"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -1638,11 +1649,13 @@ function ProjectDetailContent() {
                             <>
                               <Activity className="h-4 w-4 text-muted-foreground shrink-0" />
                               <div className="truncate text-muted-foreground">
-                                <span>Last session: </span>
-                                <span className="font-medium text-foreground">{latestDevSession.device}</span>
-                                <span className="text-[11px] block">
-                                  {new Date(latestDevSession.createdAt).toLocaleDateString()} at{" "}
-                                  {new Date(latestDevSession.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                <span>Last active: </span>
+                                <span className="font-semibold text-foreground">
+                                  {(latestDevSession as any).lastActiveFormatted ||
+                                    new Date(latestDevSession.createdAt).toLocaleDateString() + " at " + new Date(latestDevSession.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                <span className="text-[11px] block text-muted-foreground truncate">
+                                  {latestDevSession.device} &bull; {latestDevSession.ipAddress}
                                 </span>
                               </div>
                             </>
@@ -2375,34 +2388,34 @@ function ProjectDetailContent() {
       {activeTab === "settings" && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in">
           {/* Nested Sub-Sidebar */}
-          <div className="md:col-span-1 space-y-1 rounded-2xl border border-border/80 bg-card p-2 shadow-xs h-fit">
-            <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="md:col-span-1 flex md:flex-col overflow-x-auto no-scrollbar md:overflow-visible gap-1 rounded-2xl border border-border/80 bg-card p-2 shadow-xs h-fit">
+            <div className="hidden md:block px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Project Configuration
             </div>
 
             <button
               onClick={() => handleSubTabChange("details")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "details"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               <FolderKanban className="h-4 w-4 shrink-0" />
-              <span className="font-display">Project Details & Meta</span>
+              <span className="font-display">Project Details</span>
             </button>
 
             <button
               onClick={() => handleSubTabChange("sessions")}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 justify-between px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "sessions"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <Activity className="h-4 w-4 shrink-0" />
-                <span className="font-display">Login Sessions & Sentinel</span>
+                <span className="font-display">Login Sessions</span>
               </div>
               {sessionStats?.activeSessions > 0 && (
                 <span
@@ -2417,19 +2430,19 @@ function ProjectDetailContent() {
 
             <button
               onClick={() => handleSubTabChange("team")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "team"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               <Users className="h-4 w-4 shrink-0" />
-              <span className="font-display">Team Access Grants</span>
+              <span className="font-display">Team Access</span>
             </button>
 
             <button
               onClick={() => handleSubTabChange("pages")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "pages"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -2441,19 +2454,19 @@ function ProjectDetailContent() {
 
             <button
               onClick={() => handleSubTabChange("vault")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "vault"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               <KeyRound className="h-4 w-4 shrink-0" />
-              <span className="font-display">Credentials & Vault</span>
+              <span className="font-display">Credentials Vault</span>
             </button>
 
             <button
               onClick={() => handleSubTabChange("channel")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "channel"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -2465,7 +2478,7 @@ function ProjectDetailContent() {
 
             <button
               onClick={() => handleSubTabChange("danger")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 px-3 py-2 md:py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeSubTab === "danger"
                   ? "bg-destructive text-white shadow-sm"
                   : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
@@ -2961,7 +2974,8 @@ function ProjectDetailContent() {
                       </p>
                     </div>
                   ) : (
-                    <table className="w-full text-left text-xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs whitespace-nowrap sm:whitespace-normal">
                       <thead className="border-b border-border/80 bg-secondary/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                         <tr>
                           <th className="px-4 py-3">Identity & Role</th>
@@ -3120,6 +3134,7 @@ function ProjectDetailContent() {
                         })}
                       </tbody>
                     </table>
+                  </div>
                   )}
 
                   {/* Informational Policy Banner */}
@@ -3159,7 +3174,8 @@ function ProjectDetailContent() {
                 </div>
 
                 <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
-                  <table className="w-full text-left text-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs whitespace-nowrap sm:whitespace-normal">
                     <thead className="border-b border-border/80 bg-secondary/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       <tr>
                         <th className="px-5 py-3.5">Developer / Contractor</th>
@@ -3308,6 +3324,7 @@ function ProjectDetailContent() {
                     </tbody>
                   </table>
                 </div>
+              </div>
               </div>
             )}
 

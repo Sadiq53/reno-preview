@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import https from "https";
 import http from "http";
 import zlib from "zlib";
+import crypto from "crypto";
 import { URL } from "url";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +17,248 @@ interface NativeFetchResult {
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
+// --- DYNAMIC PRODUCTION-GRADE DOMAIN COOKIE JAR & ANTI-BOT CLEARANCE STORE ---
+interface CookieEntry {
+  cookies: Map<string, string>;
+  expiresAt: number;
+  lastAccessed: number;
+}
+const MAX_JAR_DOMAINS = 1000;
+const domainCookieJar = new Map<string, CookieEntry>();
+
+// Singleflight In-Flight Concurrency Lock: Prevents duplicate PoW solver execution when multiple sub-resources load
+const inFlightSolvers = new Map<string, Promise<{ html: string; statusCode: number } | null>>();
+
+function getDomainFromUrl(urlStr: string): string {
+  try {
+    const host = new URL(urlStr).hostname.toLowerCase();
+    return host.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function getStoredCookies(urlStr: string): string {
+  const domain = getDomainFromUrl(urlStr);
+  if (!domain) return "";
+  const entry = domainCookieJar.get(domain);
+  if (!entry) return "";
+  if (entry.expiresAt < Date.now()) {
+    domainCookieJar.delete(domain);
+    return "";
+  }
+  entry.lastAccessed = Date.now();
+  return Array.from(entry.cookies.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join("; ");
+}
+
+function storeCookies(urlStr: string, setCookieHeaders: string[] | string | undefined) {
+  if (!setCookieHeaders) return;
+  const domain = getDomainFromUrl(urlStr);
+  if (!domain) return;
+
+  const headers = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
+  let entry = domainCookieJar.get(domain);
+  if (!entry || entry.expiresAt < Date.now()) {
+    // Evict oldest LRU domain if capacity exceeded
+    if (domainCookieJar.size >= MAX_JAR_DOMAINS) {
+      let oldestKey: string | null = null;
+      let oldestTime = Infinity;
+      for (const [d, e] of domainCookieJar.entries()) {
+        if (e.lastAccessed < oldestTime) {
+          oldestTime = e.lastAccessed;
+          oldestKey = d;
+        }
+      }
+      if (oldestKey) domainCookieJar.delete(oldestKey);
+    }
+
+    entry = {
+      cookies: new Map<string, string>(),
+      expiresAt: Date.now() + 2592000 * 1000, // 30-day fallback
+      lastAccessed: Date.now(),
+    };
+    domainCookieJar.set(domain, entry);
+  }
+
+  entry.lastAccessed = Date.now();
+
+  for (const h of headers) {
+    const segments = h.split(";").map((s) => s.trim());
+    const cookiePart = segments[0].split("=");
+    if (cookiePart.length >= 2) {
+      const key = cookiePart[0].trim();
+      const val = cookiePart.slice(1).join("=").trim();
+      if (key && val && val !== "deleted") {
+        entry.cookies.set(key, val);
+      }
+    }
+    // Dynamically parse Max-Age or Expires from upstream response
+    for (let i = 1; i < segments.length; i++) {
+      const seg = segments[i].toLowerCase();
+      if (seg.startsWith("max-age=")) {
+        const seconds = parseInt(seg.slice(8), 10);
+        if (!isNaN(seconds) && seconds > 0) {
+          entry.expiresAt = Math.max(entry.expiresAt, Date.now() + seconds * 1000);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Autonomous Asynchronous SHA-1 Proof-of-Work Solver with Event-Loop Yielding
+ * Resolves 21-bit leading-zero challenges without freezing the server event loop.
+ */
+async function solveSiteGroundPoWAsync(
+  challengeStr: string
+): Promise<{ sol: string; elapsed: number; hashes: number } | null> {
+  try {
+    const parts = challengeStr.split(":");
+    const complexity = parseInt(parts[0], 10);
+    if (isNaN(complexity) || complexity <= 0 || complexity > 30) return null;
+
+    const challengeBuf = Buffer.from(challengeStr, "utf-8");
+    const startTime = Date.now();
+    let hashes = 0;
+    const CHUNK_SIZE = 50000;
+
+    for (let c = 0; c < 5000000; c++) {
+      hashes++;
+      let counterBytes: Buffer;
+      if (c <= 255) {
+        counterBytes = Buffer.from([c]);
+      } else if (c <= 65535) {
+        counterBytes = Buffer.alloc(2);
+        counterBytes.writeUInt16BE(c, 0);
+      } else if (c <= 16777215) {
+        counterBytes = Buffer.alloc(3);
+        counterBytes.writeUIntBE(c, 0, 3);
+      } else {
+        counterBytes = Buffer.alloc(4);
+        counterBytes.writeUInt32BE(c, 0);
+      }
+
+      const payload = Buffer.concat([challengeBuf, counterBytes]);
+      const hash = crypto.createHash("sha1").update(payload).digest();
+
+      // Check if leading bits match required complexity
+      const firstWord = hash.readUInt32BE(0);
+      if ((firstWord >>> (32 - complexity)) === 0) {
+        const elapsed = Date.now() - startTime;
+        const sol = payload.toString("base64");
+        return { sol, elapsed, hashes };
+      }
+
+      // Yield event loop every CHUNK_SIZE hashes so other concurrent requests remain instantaneous
+      if (c % CHUNK_SIZE === 0 && c > 0) {
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+    }
+  } catch (err) {
+    console.error("[POW_SOLVER_ASYNC_ERROR]", err);
+  }
+  return null;
+}
+
+/**
+ * Dynamically bypasses SiteGround / WAF bot challenges without user intervention.
+ * Uses request coalescing to deduplicate concurrent requests for the same host.
+ */
+async function attemptBypassSiteGroundChallenge(
+  targetUrl: string,
+  initialHtml: string
+): Promise<{ html: string; statusCode: number } | null> {
+  const domain = getDomainFromUrl(targetUrl);
+
+  // If a challenge solver is already in flight for this domain, join it (Singleflight pattern)
+  if (domain && inFlightSolvers.has(domain)) {
+    return inFlightSolvers.get(domain)!;
+  }
+
+  const solverTask = (async () => {
+    try {
+      // 1. Extract challenge URL from meta refresh, sgchallenge, or default to standard /.well-known/sgcaptcha/?r=%2F
+      const refreshMatch = initialHtml.match(/content=["']?0;\s*([^"'>]+)["']?/i);
+      let challengeUrl = "";
+      if (refreshMatch) {
+        challengeUrl = new URL(refreshMatch[1], targetUrl).toString();
+      } else if (initialHtml.includes("sgchallenge") && initialHtml.includes("sgsubmit_url")) {
+        challengeUrl = targetUrl;
+      } else {
+        challengeUrl = new URL("/.well-known/sgcaptcha/?r=%2F", targetUrl).toString();
+      }
+
+      // 2. Fetch the challenge page
+      let challengeHtml = initialHtml;
+      if (challengeUrl !== targetUrl) {
+        const chalRes = await fetchWithNativeHttp(challengeUrl, 2);
+        challengeHtml = chalRes.data.toString("utf-8");
+        if (chalRes.headers["set-cookie"]) {
+          storeCookies(targetUrl, chalRes.headers["set-cookie"]);
+        }
+      }
+
+      // 3. Extract challenge parameters
+      const chalMatch = challengeHtml.match(/const\s+sgchallenge\s*=\s*"([^"]+)";/);
+      const submitMatch = challengeHtml.match(/const\s+sgsubmit_url\s*=\s*"([^"]+)";/);
+      if (!chalMatch || !submitMatch) return null;
+
+      const challenge = chalMatch[1];
+      const submitPath = submitMatch[1];
+
+      // 4. Solve the mathematical proof-of-work in RAM asynchronously
+      const solution = await solveSiteGroundPoWAsync(challenge);
+      if (!solution) return null;
+
+      // 5. Submit solution to obtain the clearance cookie
+      const sep = submitPath.includes("?") ? "&" : "?";
+      const submitUrl = new URL(
+        `${submitPath}${sep}sol=${encodeURIComponent(solution.sol)}&s=${solution.elapsed}:${solution.hashes}`,
+        targetUrl
+      ).toString();
+
+      const submitRes = await fetchWithNativeHttp(submitUrl, 2);
+      if (submitRes.headers["set-cookie"]) {
+        storeCookies(targetUrl, submitRes.headers["set-cookie"]);
+      }
+
+      // 6. Fetch the authentic website page with the new dynamic clearance cookie
+      const finalRes = await fetchWithNativeHttp(targetUrl, 3);
+      const finalHtml = finalRes.data.toString("utf-8");
+      if (
+        !finalHtml.includes("sgchallenge") &&
+        !finalHtml.includes("robot-suspicion.svg") &&
+        !finalHtml.includes("Our system thinks you might be a robot")
+      ) {
+        return { html: finalHtml, statusCode: finalRes.statusCode };
+      }
+    } catch (err) {
+      console.error("[AUTO_BOT_BYPASS_FAILED]", err);
+    }
+    return null;
+  })();
+
+  if (domain) {
+    inFlightSolvers.set(domain, solverTask);
+    solverTask.finally(() => {
+      inFlightSolvers.delete(domain);
+    });
+  }
+
+  return solverTask;
+}
+
 /**
  * Resilient native HTTP/HTTPS fetcher with TLS certificate flexibility,
- * redirect following, and automatic stream decompression (gzip, deflate, brotli).
+ * redirect following, automatic cookie forwarding, and stream decompression (gzip, deflate, brotli).
  */
-function fetchWithNativeHttp(targetUrl: string, maxRedirects = 5): Promise<NativeFetchResult> {
+function fetchWithNativeHttp(
+  targetUrl: string,
+  maxRedirects = 5,
+  extraHeaders: Record<string, string> = {}
+): Promise<NativeFetchResult> {
   return new Promise((resolve, reject) => {
     let parsed: URL;
     try {
@@ -32,25 +270,46 @@ function fetchWithNativeHttp(targetUrl: string, maxRedirects = 5): Promise<Nativ
     const isHttps = parsed.protocol === "https:";
     const client = isHttps ? https : http;
 
+    const domainCookies = getStoredCookies(targetUrl);
+    const headers: Record<string, string> = {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Sec-Ch-Ua": '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      Connection: "keep-alive",
+      ...extraHeaders,
+    };
+
+    if (domainCookies) {
+      headers["Cookie"] = headers["Cookie"] ? `${headers["Cookie"]}; ${domainCookies}` : domainCookies;
+    }
+
     const req = client.request(
       parsed,
       {
         method: "GET",
-        headers: {
-          "User-Agent": BROWSER_USER_AGENT,
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-          "Accept-Encoding": "gzip, deflate, br",
-          Connection: "keep-alive",
-        },
-        rejectUnauthorized: false, // Essential for client staging sites, self-signed dev certs, and new domains
+        headers,
+        rejectUnauthorized: false,
         timeout: 15000,
       },
       (res) => {
+        // Collect cookies returned by host
+        if (res.headers["set-cookie"]) {
+          storeCookies(targetUrl, res.headers["set-cookie"]);
+        }
+
         // Handle HTTP redirects (301, 302, 307, 308)
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && maxRedirects > 0) {
           const redirected = new URL(res.headers.location, targetUrl).toString();
-          return resolve(fetchWithNativeHttp(redirected, maxRedirects - 1));
+          return resolve(fetchWithNativeHttp(redirected, maxRedirects - 1, extraHeaders));
         }
 
         const encoding = res.headers["content-encoding"];
@@ -167,18 +426,37 @@ export async function GET(req: NextRequest) {
   let httpStatus = 200;
 
   // --- MULTI-TIER RESILIENT FETCH ---
-  // Strategy 1: Fast standard fetch with realistic browser headers
+  const domainCookies = getStoredCookies(fetchUrl.toString());
+
+  // Strategy 1: Fast standard fetch with realistic browser headers & cookies
   let fetchSucceeded = false;
   try {
+    const fetchHeaders: Record<string, string> = {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Sec-Ch-Ua": '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+    };
+    if (domainCookies) {
+      fetchHeaders["Cookie"] = domainCookies;
+    }
+
     const response = await fetch(fetchUrl.toString(), {
-      headers: {
-        "User-Agent": BROWSER_USER_AGENT,
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
+      headers: fetchHeaders,
       redirect: "follow",
       cache: "no-store",
     });
+
+    if (response.headers.get("set-cookie")) {
+      storeCookies(fetchUrl.toString(), response.headers.get("set-cookie") || undefined);
+    }
 
     if (response.ok || response.status < 400) {
       finalUrl = response.url ? `${response.url}${initialHash}` : targetUrl;
@@ -187,7 +465,24 @@ export async function GET(req: NextRequest) {
 
       if (contentType.includes("text/html")) {
         htmlContent = await response.text();
-        fetchSucceeded = true;
+
+        // Check if SiteGround Anti-Bot WAF served a PoW challenge instead of real content
+        const isBotChallenge =
+          response.status === 202 ||
+          response.headers.get("sg-captcha") === "challenge" ||
+          htmlContent.includes("/.well-known/sgcaptcha/") ||
+          htmlContent.includes("robot-suspicion.svg");
+
+        if (isBotChallenge) {
+          const bypassed = await attemptBypassSiteGroundChallenge(fetchUrl.toString(), htmlContent);
+          if (bypassed) {
+            htmlContent = bypassed.html;
+            httpStatus = bypassed.statusCode || 200;
+            fetchSucceeded = true;
+          }
+        } else {
+          fetchSucceeded = true;
+        }
       } else {
         const ab = await response.arrayBuffer();
         binaryBuffer = Buffer.from(ab);
@@ -195,11 +490,10 @@ export async function GET(req: NextRequest) {
       }
     }
   } catch {
-    // Primary fetch failed (TLS error, socket close, WAF block, etc.)
-    // Proceed to Strategy 2 (Native HTTP/TLS agent)
+    // Primary fetch failed, proceed to Strategy 2
   }
 
-  // Strategy 2: Resilient Native HTTP/TLS engine with certificate forgiveness & stream decompression
+  // Strategy 2: Resilient Native HTTP/TLS engine with certificate forgiveness, PoW solver & stream decompression
   if (!fetchSucceeded) {
     try {
       const nativeResult = await fetchWithNativeHttp(fetchUrl.toString());
@@ -212,6 +506,21 @@ export async function GET(req: NextRequest) {
 
       if (contentType.includes("text/html")) {
         htmlContent = nativeResult.data.toString("utf-8");
+
+        // Check if SiteGround Anti-Bot WAF served a PoW challenge instead of real content
+        const isBotChallenge =
+          nativeResult.statusCode === 202 ||
+          nativeResult.headers["sg-captcha"] === "challenge" ||
+          htmlContent.includes("/.well-known/sgcaptcha/") ||
+          htmlContent.includes("robot-suspicion.svg");
+
+        if (isBotChallenge) {
+          const bypassed = await attemptBypassSiteGroundChallenge(fetchUrl.toString(), htmlContent);
+          if (bypassed) {
+            htmlContent = bypassed.html;
+            httpStatus = bypassed.statusCode || 200;
+          }
+        }
       } else {
         binaryBuffer = nativeResult.data;
       }
@@ -334,6 +643,76 @@ export async function GET(req: NextRequest) {
 
   // Handle HTML response
   if (contentType.includes("text/html") && htmlContent) {
+    // ZERO-ROBOT GUARANTEE: Ensure neither admin, developer, nor client EVER sees SiteGround robot challenge screens
+    const isResidualBotChallenge =
+      httpStatus === 202 ||
+      htmlContent.includes("Our system thinks you might be a robot") ||
+      htmlContent.includes("/.well-known/sgcaptcha/") ||
+      htmlContent.includes("robot-suspicion.svg");
+
+    if (isResidualBotChallenge) {
+      // Proactively clear challenge server-side
+      const autoBypassed = await attemptBypassSiteGroundChallenge(fetchUrl.toString(), htmlContent);
+      if (autoBypassed) {
+        htmlContent = autoBypassed.html;
+        httpStatus = autoBypassed.statusCode || 200;
+      } else {
+        // If upstream host is currently performing challenge resolution,
+        // render sleek Vanguard Secure Connection Card with automatic 3s auto-reload
+        const secureConnectingHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Securing Preview Connection</title>
+  <meta http-equiv="refresh" content="3">
+  <style>
+    body {
+      margin: 0; padding: 0; background: #FAFAF7; color: #0F172A;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+      text-align: center; box-sizing: border-box; padding: 24px;
+    }
+    .card {
+      background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
+      padding: 36px 40px; max-width: 520px; width: 100%; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06);
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px; background: #EFF6FF;
+      border: 1px solid #BFDBFE; color: #2563EB; padding: 4px 12px; border-radius: 9999px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px;
+    }
+    .spinner {
+      width: 24px; height: 24px; border: 3px solid #E2E8F0; border-top-color: #2563EB;
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h2 { margin: 0 0 8px 0; color: #0F172A; font-size: 18px; font-weight: 700; }
+    p { color: #64748B; font-size: 12.5px; line-height: 1.6; margin: 0 0 16px 0; }
+    .url { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px 12px; border-radius: 10px; font-family: monospace; font-size: 11px; word-break: break-all; color: #2563EB; margin: 12px 0 20px 0; }
+    .btn-primary { background: #2563EB; color: white; border: none; padding: 9px 20px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background: #1D4ED8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <div class="badge">Vanguard Preview Guard</div>
+    <h2>Authenticating Upstream Host</h2>
+    <p>Crewvia Vanguard is performing zero-touch security verification with the host server. The preview stream will refresh automatically.</p>
+    <div class="url">\${targetUrl}</div>
+    <button class="btn-primary" onclick="window.location.reload()">Reload Now</button>
+  </div>
+</body>
+</html>
+        `;
+        return new NextResponse(secureConnectingHtml, {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      }
+    }
+
     // 1. Strip restrictive inline meta tags that browsers enforce inside frames
     let modifiedHtml = htmlContent.replace(
       /<meta[^>]*http-equiv=["']?(?:content-security-policy|x-frame-options)["']?[^>]*>/gi,
@@ -741,4 +1120,8 @@ export async function GET(req: NextRequest) {
       "Access-Control-Allow-Origin": "*",
     },
   });
+}
+
+export async function POST(req: NextRequest) {
+  return GET(req);
 }

@@ -234,3 +234,16 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
 }
+
+/* Responsive adjustments for mobile touch devices */
+@media (max-width: 640px) {
+  .previewContainer {
+    padding: 8px 6px;
+  }
+  .sizeIndicator {
+    display: none;
+  }
+  .resizeHandle {
+    display: none;
+  }
+}

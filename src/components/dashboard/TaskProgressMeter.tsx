@@ -73,7 +73,7 @@ export default function TaskProgressMeter({
 
       {/* Multi-Segmented Progress Bar */}
       <div
-        className={`w-full overflow-hidden rounded-full bg-secondary border border-border/80 flex ${heightClasses[size]}`}
+        className={`w-full overflow-hidden rounded-full bg-secondary/80 border border-border/60 flex ${heightClasses[size]}`}
       >
         {/* Resolved Segment */}
         {resolvedPercent > 0 && (
@@ -88,7 +88,7 @@ export default function TaskProgressMeter({
         {inProgressPercent > 0 && (
           <div
             style={{ width: `${inProgressPercent}%` }}
-            className="h-full bg-primary transition-all duration-500 ease-out"
+            className="h-full bg-sky-500 transition-all duration-500 ease-out"
             title={`${inProgress} In Progress (${inProgressPercent}%)`}
           />
         )}
@@ -96,24 +96,24 @@ export default function TaskProgressMeter({
 
       {/* Detailed Breakdown Legend Pills */}
       {showBreakdown && total > 0 && (
-        <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-xs" />
+        <div className="flex flex-wrap items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+          <div className="inline-flex items-center gap-1 rounded-md bg-secondary/50 px-1.5 py-0.5 border border-border/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-xs" />
             <span className="text-foreground font-semibold font-mono">{resolved}</span>
             <span>Resolved</span>
           </div>
 
           {inProgress > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-primary shadow-xs" />
+            <div className="inline-flex items-center gap-1 rounded-md bg-secondary/50 px-1.5 py-0.5 border border-border/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-500 shadow-xs" />
               <span className="text-foreground font-semibold font-mono">{inProgress}</span>
               <span>In Progress</span>
             </div>
           )}
 
           {pendingCount > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-amber-500 shadow-xs" />
+            <div className="inline-flex items-center gap-1 rounded-md bg-secondary/50 px-1.5 py-0.5 border border-border/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-xs" />
               <span className="text-foreground font-semibold font-mono">{pendingCount}</span>
               <span>Pending</span>
             </div>

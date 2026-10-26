@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { normalizeWpLoginUrl } from "@/lib/wp-session";
+import { recordPresenceHeartbeat } from "@/lib/presence";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,6 +105,16 @@ export async function GET(req: Request) {
           { active: false, reason: "session_revoked" },
           { status: 200, headers: corsHeaders }
         );
+      }
+
+      if (searchParams.get("inWpAdmin") === "true" || searchParams.get("activePresence") === "true") {
+        recordPresenceHeartbeat({
+          domain: assignment.project.targetUrl || domain || "",
+          assignmentId: assignment.id,
+          userId: assignment.userId,
+          userEmail: assignment.user.email,
+          userName: assignment.user.name || undefined,
+        });
       }
 
       return NextResponse.json(

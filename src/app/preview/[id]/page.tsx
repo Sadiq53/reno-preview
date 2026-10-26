@@ -587,10 +587,10 @@ function PreviewWorkspaceContent() {
         onOpenShare={session?.user?.role === "ADMIN" ? () => setIsShareModalOpen(true) : undefined}
       />
 
-      {/* Main Workspace Layout: Canvas (flex-1) + Smooth In-Flow Comment Sidebar */}
-      <div className="relative flex flex-1 overflow-hidden h-[calc(100vh-58px)]">
+      {/* Main Workspace Layout: Canvas (flex-1 min-w-0) + Smooth In-Flow Comment Sidebar */}
+      <div className="relative flex flex-1 w-full min-w-0 overflow-hidden h-[calc(100vh-58px)]">
         {/* Canvas Area: Smoothly shifts and resizes when sidebar opens */}
-        <main className="relative flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out bg-slate-100/60 dot-grid">
+        <main className="relative flex-1 min-w-0 h-full overflow-hidden transition-all duration-300 ease-in-out bg-slate-100/60 dot-grid">
           {errorMessage && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive shadow-lg backdrop-blur-md">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />

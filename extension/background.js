@@ -16,6 +16,62 @@ const EXTENSION_VERSION = "1.0.0";
 const DEFAULT_BROKER_URL = "https://vanguard.crewvia.in";
 const HEARTBEAT_INTERVAL_MS = 10000; // 10-second heartbeat check
 
+// Map of currently open WordPress Admin tabs: tabId -> { domain, assignmentId, brokerUrl, lastActive }
+const openWpTabs = new Map();
+
+async function syncOpenWpTabsToStorage() {
+  try {
+    const obj = {};
+    for (const [tabId, info] of openWpTabs.entries()) {
+      obj[tabId] = info;
+    }
+    await chrome.storage.local.set({ persistedOpenWpTabs: obj });
+  } catch (e) {}
+}
+
+async function restoreOpenWpTabsFromStorage() {
+  try {
+    const { persistedOpenWpTabs = {} } = await chrome.storage.local.get(["persistedOpenWpTabs"]);
+    for (const [tabId, info] of Object.entries(persistedOpenWpTabs)) {
+      openWpTabs.set(Number(tabId), info);
+    }
+  } catch (e) {}
+}
+restoreOpenWpTabsFromStorage();
+
+function countOpenTabsForDomain(domain) {
+  if (!domain) return 0;
+  const clean = domain.toLowerCase().replace(/^\./, "").replace(/^www\./, "");
+  let count = 0;
+  for (const info of openWpTabs.values()) {
+    if (info.domain === clean) count++;
+  }
+  return count;
+}
+
+async function notifyBrokerPresence(action, { domain, assignmentId, brokerUrl, remainingTabs = 0 }) {
+  if (!domain && !assignmentId) return;
+  const cleanBrokerUrl = (brokerUrl || DEFAULT_BROKER_URL).replace(/\/+$/, "");
+  const presenceEndpoint = `${cleanBrokerUrl}/api/broker/presence`;
+
+  try {
+    await fetch(presenceEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        domain,
+        assignmentId,
+        remainingTabs,
+        tabCount: remainingTabs,
+        device: "Chrome on " + (navigator?.userAgentData?.platform || "Desktop"),
+      }),
+    });
+  } catch (e) {
+    // Ignore offline network blips
+  }
+}
+
 /**
  * Computes a deterministic dynamic rule ID for a domain.
  */
@@ -136,6 +192,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.storage.local.get(["activeSessions"], (res) => {
         sendResponse({ sessions: res.activeSessions || [] });
       });
+      return true;
+
+    case "WP_ADMIN_ACTIVE":
+      if (sender?.tab?.id) {
+        const cleanDomain = (message.domain || "").toLowerCase().replace(/^\./, "").replace(/^www\./, "");
+        chrome.storage.local.get(["activeSessions"], (res) => {
+          const sessions = res.activeSessions || [];
+          const matchedSession = sessions.find((s) => {
+            const sDomain = (s.domain || "").toLowerCase().replace(/^\./, "").replace(/^www\./, "");
+            return sDomain === cleanDomain || cleanDomain.endsWith("." + sDomain);
+          });
+          const assignmentId = matchedSession?.assignmentId || message.assignmentId;
+          const brokerUrl = matchedSession?.brokerUrl || DEFAULT_BROKER_URL;
+
+          openWpTabs.set(sender.tab.id, {
+            domain: cleanDomain,
+            assignmentId,
+            brokerUrl,
+            lastActive: Date.now(),
+          });
+          syncOpenWpTabsToStorage();
+
+          notifyBrokerPresence("HEARTBEAT", {
+            domain: cleanDomain,
+            assignmentId,
+            brokerUrl,
+            remainingTabs: countOpenTabsForDomain(cleanDomain),
+          });
+        });
+      }
+      sendResponse({ status: "active_recorded" });
+      return true;
+
+    case "WP_ADMIN_PAGE_UNLOAD":
+      if (sender?.tab?.id && openWpTabs.has(sender.tab.id)) {
+        const tabInfo = openWpTabs.get(sender.tab.id);
+        openWpTabs.delete(sender.tab.id);
+        syncOpenWpTabsToStorage();
+        const remaining = countOpenTabsForDomain(tabInfo.domain);
+        if (remaining === 0) {
+          notifyBrokerPresence("TAB_CLOSED", {
+            domain: tabInfo.domain,
+            assignmentId: tabInfo.assignmentId,
+            brokerUrl: tabInfo.brokerUrl,
+            remainingTabs: 0,
+          });
+        }
+      }
+      sendResponse({ status: "unload_processed" });
       return true;
 
     case "PING":
@@ -290,6 +395,23 @@ async function handleClaimAndLaunch({ grantToken, brokerUrl, targetUrl, assignme
     url: destinationUrl,
     active: true,
   });
+
+  if (newTab && newTab.id) {
+    openWpTabs.set(newTab.id, {
+      domain: cleanTargetDomain,
+      assignmentId: resolvedAssignmentId,
+      brokerUrl: cleanBrokerUrl,
+      lastActive: Date.now(),
+    });
+    syncOpenWpTabsToStorage();
+
+    notifyBrokerPresence("HEARTBEAT", {
+      domain: cleanTargetDomain,
+      assignmentId: resolvedAssignmentId,
+      brokerUrl: cleanBrokerUrl,
+      remainingTabs: 1,
+    });
+  }
 
   ensureAlarms();
 
@@ -704,4 +826,81 @@ if (chrome.runtime && chrome.runtime.onInstalled) {
 
 // Run on background worker activation
 injectBridgeIntoOpenTabs();
+
+// ============================================================================
+// Real-Time WordPress Admin Presence & Tab Sentinels
+// ============================================================================
+
+// Detect when developer closes a WordPress admin tab
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  let tabInfo = openWpTabs.get(tabId);
+  if (!tabInfo) {
+    const { persistedOpenWpTabs = {} } = await chrome.storage.local.get(["persistedOpenWpTabs"]).catch(() => ({}));
+    tabInfo = persistedOpenWpTabs?.[tabId];
+  }
+
+  if (tabInfo) {
+    openWpTabs.delete(tabId);
+    await syncOpenWpTabsToStorage();
+
+    // Query active browser tabs to see if any tabs for this domain are still on /wp-admin/
+    let remainingTabs = 0;
+    try {
+      const allTabs = await chrome.tabs.query({});
+      for (const t of allTabs) {
+        if (t.id !== tabId && t.url) {
+          try {
+            const u = new URL(t.url);
+            const tabDomain = u.hostname.toLowerCase().replace(/^\./, "").replace(/^www\./, "");
+            if (
+              (tabDomain === tabInfo.domain || tabDomain.endsWith("." + tabInfo.domain)) &&
+              u.pathname.toLowerCase().includes("/wp-admin/")
+            ) {
+              remainingTabs++;
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (e) {
+      remainingTabs = countOpenTabsForDomain(tabInfo.domain);
+    }
+
+    if (remainingTabs === 0) {
+      console.log(`[Vanguard Presence] All WP admin tabs closed for ${tabInfo.domain}. Informing broker...`);
+      notifyBrokerPresence("TAB_CLOSED", {
+        domain: tabInfo.domain,
+        assignmentId: tabInfo.assignmentId,
+        brokerUrl: tabInfo.brokerUrl,
+        remainingTabs: 0,
+      });
+    }
+  }
+});
+
+// Detect when developer navigates away from /wp-admin/
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    const lowerUrl = changeInfo.url.toLowerCase();
+    let tabInfo = openWpTabs.get(tabId);
+    if (!tabInfo) {
+      const { persistedOpenWpTabs = {} } = await chrome.storage.local.get(["persistedOpenWpTabs"]).catch(() => ({}));
+      tabInfo = persistedOpenWpTabs?.[tabId];
+    }
+
+    if (tabInfo && !lowerUrl.includes("/wp-admin/")) {
+      openWpTabs.delete(tabId);
+      await syncOpenWpTabsToStorage();
+      const remaining = countOpenTabsForDomain(tabInfo.domain);
+      if (remaining === 0) {
+        console.log(`[Vanguard Presence] Developer navigated away from WP admin for ${tabInfo.domain}`);
+        notifyBrokerPresence("TAB_CLOSED", {
+          domain: tabInfo.domain,
+          assignmentId: tabInfo.assignmentId,
+          brokerUrl: tabInfo.brokerUrl,
+          remainingTabs: 0,
+        });
+      }
+    }
+  }
+});
 

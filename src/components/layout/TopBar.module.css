@@ -364,21 +364,94 @@
 /* ==================== RESPONSIVE RULES ==================== */
 @media (max-width: 1100px) {
   .projectName {
-    max-width: 100px;
+    max-width: 90px;
   }
 }
 
 @media (max-width: 960px) {
-  .topbarCenter {
+  .modeLabel {
     display: none;
+  }
+  .modeBtn {
+    padding: 5px 8px;
+    gap: 0;
   }
   .feedbackPill span:last-child {
     display: none;
   }
+  .projectName {
+    max-width: 75px;
+  }
 }
 
-@media (max-width: 640px) {
-  .breadcrumbWrapper {
+@media (max-width: 768px) {
+  .topbarContainer {
+    padding: 0 8px;
+    gap: 6px;
+    height: 52px;
+  }
+  .zoomPill {
     display: none;
+  }
+  .separator {
+    display: none;
+  }
+  .breadcrumbWrapper {
+    padding: 2px 4px;
+    gap: 4px;
+  }
+  .projectName {
+    display: none;
+  }
+  .breadcrumbDivider {
+    display: none;
+  }
+  .pageDropdown {
+    max-width: 130px;
+    font-size: 11px;
+    padding: 2.5px 20px 2.5px 6px;
+  }
+}
+
+@media (max-width: 540px) {
+  .pageDropdown {
+    max-width: 95px;
+    font-size: 10px;
+  }
+  .deviceGroup {
+    padding: 2px;
+    gap: 1px;
+  }
+  .deviceBtn {
+    width: 24px;
+    height: 24px;
+  }
+  .modeBtn {
+    padding: 4px 6px;
+  }
+  .iconActionBtn {
+    width: 26px;
+    height: 26px;
+  }
+  .feedbackPill {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+  .brandIconBtn {
+    padding: 2px;
+  }
+  .iconLogoWrapper {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (max-width: 400px) {
+  .topbarContainer {
+    padding: 0 4px;
+    gap: 4px;
+  }
+  .pageDropdown {
+    max-width: 80px;
   }
 }

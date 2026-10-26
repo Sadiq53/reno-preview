@@ -162,8 +162,8 @@ export default function CommentSidebar({
     });
   }, [comments, activeTab, activePageId, activeViewportSize, searchQuery]);
 
-  const handleDraftSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDraftSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!draftContent.trim() || isSubmittingDraft) return;
 
     setIsSubmittingDraft(true);
@@ -203,41 +203,55 @@ export default function CommentSidebar({
         </button>
       )}
 
+      {/* Mobile Drawer Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-30 sm:hidden animate-in fade-in duration-200"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
       <aside
         data-comment-sidebar="true"
-        className={`relative h-full flex flex-col border-l border-border bg-card/95 backdrop-blur-xl shadow-xl transition-all duration-300 ease-in-out shrink-0 z-30 select-none overflow-hidden
-          ${isOpen ? "w-full sm:w-[400px] xl:w-[440px] opacity-100" : "w-0 opacity-0 border-l-0 pointer-events-none"}
+        className={`fixed sm:relative inset-y-0 right-0 sm:inset-auto h-full flex flex-col border-l border-border bg-card/95 backdrop-blur-xl shadow-xl transition-all duration-300 ease-in-out shrink-0 z-40 sm:z-30 select-none overflow-hidden max-w-full
+          ${isOpen ? "w-[90vw] sm:w-[360px] md:w-[380px] lg:w-[390px] xl:w-[400px] opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-full sm:translate-x-0 border-l-0 pointer-events-none"}
         `}
         aria-label="Comments and task annotations sidebar"
       >
-      <div className="w-[400px] xl:w-[440px] h-full flex flex-col min-w-0">
+      <div className="w-full h-full flex flex-col min-w-0 overflow-hidden">
       {/* Top Header */}
-      <div className="flex h-14 items-center justify-between border-b border-border/80 px-5 bg-muted/20">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <div className="flex h-14 items-center justify-between border-b border-border/80 px-4 bg-card/70 backdrop-blur-md min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-xs shrink-0">
             <MessageSquare className="h-4 w-4" />
           </div>
-          <div>
-            <h2 className="font-display text-xs font-bold uppercase tracking-wider text-foreground">
-              Visual Feedback & Tasks
-            </h2>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-foreground truncate">
+                Visual Feedback & Tasks
+              </h2>
+              <span className="rounded-full bg-secondary border border-border/70 px-2 py-0.5 text-[10px] font-bold text-foreground font-mono shrink-0">
+                {comments.length}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground truncate">
+              Click canvas to pin &bull; Press C to comment
+            </p>
           </div>
-          <span className="rounded-full bg-secondary border border-border px-2 py-0.5 text-[10px] font-bold text-secondary-foreground font-mono">
-            {comments.length}
-          </span>
         </div>
 
         <button
           onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
-          title="Close sidebar"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/60 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-xs"
+          title="Close sidebar (Esc)"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="border-b border-border/80 px-4 py-3 space-y-2.5 bg-muted/10">
+      <div className="border-b border-border/80 px-4 py-3 space-y-2.5 bg-muted/10 min-w-0">
         {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
@@ -246,82 +260,116 @@ export default function CommentSidebar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search feedback, authors, pages..."
-            className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/25 outline-none shadow-xs"
+            className="w-full rounded-xl border border-input/80 bg-background/90 pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none shadow-xs transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
+              title="Clear search"
             >
               <X className="h-3 w-3" />
             </button>
           )}
         </div>
 
-        {/* Tab Pills */}
-        <div className="grid grid-cols-5 gap-1 rounded-xl bg-muted/40 p-1 border border-border/60">
+        {/* Tab Pills - Modern Responsive Pill Bar */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary/50 border border-border/70 overflow-x-auto no-scrollbar min-w-0">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
-            className={`rounded-lg py-1 text-[10px] font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10.5px] font-medium transition-all shrink-0 cursor-pointer ${
               activeTab === "all"
-                ? "bg-card text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-foreground shadow-xs font-semibold border border-border/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
-            All ({counts.all})
+            <span>All</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold ${
+              activeTab === "all" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+            }`}>
+              {counts.all}
+            </span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("screen")}
-            className={`rounded-lg py-1 text-[10px] font-medium transition-all truncate px-0.5 cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all shrink-0 cursor-pointer ${
               activeTab === "screen"
-                ? "bg-card text-primary shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-foreground shadow-xs font-semibold border border-border/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
             title={activeViewportSize ? `Current Screen: ${activeViewportSize.width}×${activeViewportSize.height}` : "Current Screen"}
           >
-            Screen ({counts.screen})
+            <span>Screen</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold ${
+              activeTab === "screen" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+            }`}>
+              {counts.screen}
+            </span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("page")}
-            className={`rounded-lg py-1 text-[10px] font-medium transition-all truncate px-0.5 cursor-pointer ${
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-medium transition-all shrink-0 cursor-pointer ${
               activeTab === "page"
-                ? "bg-card text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-foreground shadow-xs font-semibold border border-border/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
             title={activePageTitle}
           >
-            Page ({counts.page})
+            <span>Page</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold ${
+              activeTab === "page" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+            }`}>
+              {counts.page}
+            </span>
           </button>
+
+          <div className="h-4 w-[1px] bg-border/80 shrink-0 mx-0.5" />
+
           <button
             type="button"
             onClick={() => setActiveTab("pending")}
-            className={`rounded-lg py-1 text-[10px] font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-medium transition-all shrink-0 cursor-pointer ${
               activeTab === "pending"
-                ? "bg-card text-amber-900 shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-amber-600 dark:text-amber-400 shadow-xs font-semibold border border-amber-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
-            Pending ({counts.pending})
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span>Pending</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold ${
+              activeTab === "pending" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-muted text-muted-foreground"
+            }`}>
+              {counts.pending}
+            </span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("resolved")}
-            className={`rounded-lg py-1 text-[10px] font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-medium transition-all shrink-0 cursor-pointer ${
               activeTab === "resolved"
-                ? "bg-card text-emerald-900 shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold border border-emerald-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
-            Done ({counts.resolved})
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>Done</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold ${
+              activeTab === "resolved" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+            }`}>
+              {counts.resolved}
+            </span>
           </button>
         </div>
 
         {/* Live Project Task Progress Meter */}
         {comments.length > 0 && (
-          <div className="pt-1.5 px-0.5">
+          <div className="pt-1 px-0.5">
             <TaskProgressMeter
               total={counts.all}
               resolved={counts.resolved}
@@ -340,13 +388,13 @@ export default function CommentSidebar({
         {/* New Pin Draft Card Form */}
         {draftPin && (
           <div className="rounded-2xl border-2 border-dashed border-primary bg-primary/[0.04] p-4 shadow-sm animate-in fade-in slide-in-from-top-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-primary">
                 <span className="flex h-2 w-2 rounded-full bg-primary animate-ping" />
                 <span>New Pin Annotation</span>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
-                <MapPin className="h-3 w-3 text-primary" />
+              <div className="flex items-center gap-1 text-[10px] font-mono bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md">
+                <MapPin className="h-3 w-3" />
                 <span>
                   {draftPin.posX.toFixed(1)}% · {draftPin.posY.toFixed(1)}%
                 </span>
@@ -358,37 +406,50 @@ export default function CommentSidebar({
                 ref={draftInputRef}
                 value={draftContent}
                 onChange={(e) => setDraftContent(e.target.value)}
-                placeholder="What changes or feedback do you want to request here?"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (draftContent.trim() && !isSubmittingDraft) {
+                      handleDraftSubmit();
+                    }
+                  }
+                }}
+                placeholder="What changes or feedback do you want to request here? (Press Enter to post, Shift+Enter for new line)"
                 rows={3}
-                className="w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/25 outline-none resize-none leading-relaxed"
+                className="w-full rounded-xl border border-input/80 bg-background/90 p-3 text-xs text-foreground placeholder:text-muted-foreground/70 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none resize-none leading-relaxed shadow-2xs transition-all"
               />
 
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={onCancelDraftPin}
-                  disabled={isSubmittingDraft}
-                  className="rounded-xl px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!draftContent.trim() || isSubmittingDraft}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
-                >
-                  {isSubmittingDraft ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Drop Pin</span>
-                    </>
-                  )}
-                </button>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">
+                  Press <kbd className="font-mono bg-muted px-1 py-0.5 rounded text-[9px] text-foreground">Enter</kbd> to submit
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onCancelDraftPin}
+                    disabled={isSubmittingDraft}
+                    className="rounded-xl px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!draftContent.trim() || isSubmittingDraft}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+                  >
+                    {isSubmittingDraft ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Add Comment</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -436,16 +497,18 @@ export default function CommentSidebar({
       </div>
 
       {/* Footer Instructions */}
-      <div className="border-t border-border/80 bg-muted/20 p-3 text-center text-[11px] text-muted-foreground">
-        <span>Click pin to inspect element &bull; Press </span>
-        <kbd className="rounded bg-card border border-border px-1 py-0.5 font-mono text-[10px] text-foreground shadow-xs">
-          C
-        </kbd>
-        <span> for Comment Mode &bull; </span>
-        <kbd className="rounded bg-card border border-border px-1 py-0.5 font-mono text-[10px] text-foreground shadow-xs">
-          B
-        </kbd>
-        <span> for Browse Mode</span>
+      <div className="border-t border-border/80 bg-muted/20 px-4 py-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Live Canvas</span>
+        </div>
+        <div className="flex items-center gap-1 text-[10px]">
+          <kbd className="rounded-md bg-card border border-border px-1.5 py-0.5 font-mono text-[9.5px] text-foreground shadow-2xs">C</kbd>
+          <span>Comment</span>
+          <span className="text-muted-foreground/40 mx-1">&bull;</span>
+          <kbd className="rounded-md bg-card border border-border px-1.5 py-0.5 font-mono text-[9.5px] text-foreground shadow-2xs">B</kbd>
+          <span>Browse</span>
+        </div>
       </div>
       </div>
     </aside>

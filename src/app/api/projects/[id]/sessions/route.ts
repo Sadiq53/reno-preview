@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { recordAuditLog } from "@/lib/audit";
 import { normalizeWpLoginUrl } from "@/lib/wp-session";
+import { getDeveloperPresence, formatFriendlyTimeAgo } from "@/lib/presence";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -97,7 +98,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       where: {
         projectId,
         action: {
-          in: ["WP_LOGIN_GRANT_DISPATCHED", "WP_SESSION_CLAIMED", "WP_SESSION_REVOKED"],
+          in: ["WP_LOGIN_GRANT_DISPATCHED", "WP_SESSION_CLAIMED", "WP_SESSION_REVOKED", "WP_ADMIN_TAB_CLOSED"],
         },
       },
       orderBy: { timestamp: "desc" },
@@ -124,6 +125,32 @@ export async function GET(req: Request, { params }: RouteParams) {
         (grant.sessionDataEncrypted === null && grant.usedAt !== null);
       const isUsed = grant.usedAt !== null;
 
+      // Check real-time active developer presence from WP admin
+      let projectDomain: string | undefined;
+      try {
+        if (project.targetUrl) {
+          projectDomain = new URL(project.targetUrl).hostname;
+        }
+      } catch {}
+
+      const presence = getDeveloperPresence({
+        assignmentId: grant.assignmentId,
+        domain: projectDomain,
+        userId: grant.assignment.userId,
+      });
+
+      // A session is ONLY ACTIVE if:
+      // 1. Not revoked or expired
+      // 2. Grant has been used
+      // 3. Extension is actively keeping WP admin tab open and sending heartbeats (presence.isActive === true)
+      //    OR the grant was claimed within 40 seconds (grace period while opening) AND not closed!
+      const wasClaimedWithinGrace =
+        grant.usedAt !== null &&
+        now.getTime() - new Date(grant.usedAt).getTime() < 40000 &&
+        !presence.closedAt;
+
+      const isActuallyActive = (presence.isActive || Boolean(wasClaimedWithinGrace)) && !presence.closedAt;
+
       // Status determination
       let status: "ACTIVE" | "PENDING_DISPATCH" | "CONSUMED" | "EXPIRED" | "REVOKED";
       if (isAssignmentRevoked || isGrantRevoked) {
@@ -131,9 +158,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       } else if (isAssignmentExpired) {
         status = "EXPIRED";
       } else if (isUsed) {
-        // Considered active within 12 hours of use
-        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-        if (new Date(grant.usedAt!) > twelveHoursAgo) {
+        if (isActuallyActive) {
           status = "ACTIVE";
         } else {
           status = "CONSUMED";
@@ -143,6 +168,19 @@ export async function GET(req: Request, { params }: RouteParams) {
       } else {
         status = "EXPIRED";
       }
+
+      // Check durable audit log for recent tab closure if presence was cleared (e.g. server restart)
+      const closedLog = auditLogs.find(
+        (l) =>
+          l.action === "WP_ADMIN_TAB_CLOSED" &&
+          (l.userId === grant.assignment.userId || (l.metadata as any)?.assignmentId === grant.assignmentId)
+      );
+
+      const lastActiveDate =
+        presence.lastActiveAt ||
+        (closedLog ? new Date(closedLog.timestamp) : null) ||
+        (grant.usedAt ? new Date(grant.usedAt) : new Date(grant.createdAt));
+      const lastActiveFormatted = formatFriendlyTimeAgo(lastActiveDate);
 
       return {
         id: grant.id,
@@ -158,15 +196,18 @@ export async function GET(req: Request, { params }: RouteParams) {
         isAdmin: grant.assignment.user.role === "ADMIN",
         wpRoleTemplate: grant.assignment.wpRoleTemplate,
         status,
-        device,
+        device: presence.device || device,
         browser,
         os,
         isCompanionExtension,
-        ipAddress,
+        ipAddress: presence.ipAddress || ipAddress,
         createdAt: grant.createdAt.toISOString(),
         usedAt: grant.usedAt ? grant.usedAt.toISOString() : null,
         expiresAt: grant.expiresAt.toISOString(),
         assignmentExpiresAt: grant.assignment.expiresAt.toISOString(),
+        lastActiveAt: lastActiveDate.toISOString(),
+        lastActiveFormatted,
+        isActuallyActive,
       };
     });
 

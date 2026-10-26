@@ -91,7 +91,65 @@
     console.warn("[Reno Access Sentinel] Runtime communication error:", err);
   }
 
-  // 3. Early CSS Injection (runs at document_start to eliminate UI flicker / FOUC)
+  // 3. Real-Time Active WordPress Presence Reporter
+  // Only reports active while developer is genuinely on and interacting with wp-admin
+  let lastUserActivity = Date.now();
+  const registerActivity = () => {
+    const wasIdle = Date.now() - lastUserActivity > 60000;
+    lastUserActivity = Date.now();
+    if (wasIdle && document.visibilityState === "visible") {
+      reportActivePresence();
+    }
+  };
+
+  window.addEventListener("mousemove", registerActivity, { passive: true });
+  window.addEventListener("keydown", registerActivity, { passive: true });
+  window.addEventListener("click", registerActivity, { passive: true });
+  window.addEventListener("scroll", registerActivity, { passive: true });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      registerActivity();
+      reportActivePresence();
+    }
+  });
+
+  function reportActivePresence() {
+    // Only report active if tab is visible and developer was active within the last 2 minutes
+    if (document.visibilityState === "hidden") return;
+    const isIdle = Date.now() - lastUserActivity > 120000;
+    if (isIdle) return;
+
+    try {
+      chrome.runtime.sendMessage({
+        type: "WP_ADMIN_ACTIVE",
+        domain: window.location.hostname,
+        url: window.location.href,
+        path: window.location.pathname,
+      });
+    } catch (e) {}
+  }
+
+  // Report presence immediately on page load
+  reportActivePresence();
+
+  // Send periodic heartbeat every 20 seconds while developer is actively working
+  const presenceInterval = setInterval(reportActivePresence, 20000);
+
+  // When window/tab closes or navigates away, notify extension background immediately
+  const handlePageUnload = () => {
+    try {
+      chrome.runtime.sendMessage({
+        type: "WP_ADMIN_PAGE_UNLOAD",
+        domain: window.location.hostname,
+      });
+    } catch (e) {}
+  };
+
+  window.addEventListener("pagehide", handlePageUnload);
+  window.addEventListener("beforeunload", handlePageUnload);
+
+  // 4. Early CSS Injection (runs at document_start to eliminate UI flicker / FOUC)
   function injectSentinelStyles() {
     if (document.getElementById("reno-sentinel-styles")) return;
 

@@ -75,10 +75,39 @@ export default function NotificationDrawer({
   const [pushStatus, setPushStatus] = useState<"default" | "granted" | "denied">("default");
   const [isRegisteringPush, setIsRegisteringPush] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Smooth two-way sliding animation lifecycle
+  useEffect(() => {
+    let openTimer: NodeJS.Timeout;
+    let closeTimer: NodeJS.Timeout;
+
+    if (isOpen) {
+      setShouldRender(true);
+      // Wait a tick (25ms) so browser computes the initial translate-x-full & opacity-0 state
+      // before transitioning to translate-x-0 & opacity-100
+      openTimer = setTimeout(() => {
+        setIsVisible(true);
+      }, 25);
+    } else {
+      setIsVisible(false);
+      // Allow full duration of 320ms for slide-out before unmounting from DOM
+      closeTimer = setTimeout(() => {
+        setShouldRender(false);
+      }, 320);
+    }
+
+    return () => {
+      clearTimeout(openTimer);
+      clearTimeout(closeTimer);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPushStatus(Notification.permission);
@@ -234,19 +263,29 @@ export default function NotificationDrawer({
     }
   };
 
-  if (!isOpen || !mounted) return null;
+  if (!shouldRender || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 overflow-hidden select-none">
-      {/* Dimmed backdrop with smooth fade-in */}
+    <div
+      className={`fixed inset-0 z-50 overflow-hidden select-none ${
+        isVisible ? "pointer-events-auto" : "pointer-events-none"
+      }`}
+    >
+      {/* Dimmed backdrop with smooth fade in/out */}
       <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-300"
+        className={`fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 ease-out ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
         onClick={onClose}
       />
 
-      {/* Slide-over panel with smooth slide-in-from-right */}
+      {/* Slide-over panel with smooth transform slide in/out */}
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-10 pointer-events-none">
-        <div className="w-screen max-w-md bg-card border-l border-border shadow-2xl flex flex-col pointer-events-auto h-full animate-in slide-in-from-right duration-300 ease-out">
+        <div
+          className={`w-screen max-w-md bg-card border-l border-border shadow-2xl flex flex-col pointer-events-auto h-full transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform ${
+            isVisible ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
           
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-border/70 flex items-center justify-between gap-3 bg-secondary/20">
